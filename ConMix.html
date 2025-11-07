@@ -646,6 +646,20 @@
                 gap: 10px;
             }
         }
+
+        .duplicate-highlight {
+            animation: blink 1s 5;
+            background-color: #ffcccc !important;
+            border: 2px solid #ff0000 !important;
+        }
+        
+        @keyframes blink {
+            0% { background-color: #ffcccc; }
+            50% { background-color: #ff9999; }
+            100% { background-color: #ffcccc; }
+        }
+        
+        /* Rest of the CSS remains the same */
     </style>
 </head>
 <body>
@@ -2277,6 +2291,72 @@
             highlightExposureCells();
             updateTargetStrengthPreview();
         };
+  
+        // All previous JavaScript code remains the same
+        
+        function saveResults() {
+            if (!currentResult) {
+                showMessage("No results to save. Please calculate mix proportions first.", "error");
+                return;
+            }
+            
+            if (!currentUser) {
+                showMessage("Please login to save results.", "error");
+                return;
+            }
+            
+            // Check if this result is already saved (by comparing key parameters)
+            const existingResultIndex = currentUser.results.findIndex(result => 
+                result.grade === currentResult.grade &&
+                Math.abs(result.wcr - currentResult.wcr) < 0.001
+            );
+            
+            if (existingResultIndex !== -1) {
+                // Show the saved results section
+                toggleSavedResults();
+                
+                // Highlight the duplicate row with blinking animation
+                highlightDuplicateRow(existingResultIndex);
+                
+                showMessage("This result is already saved. The existing result has been highlighted.", "error");
+                return;
+            }
+            
+            // Add to user's saved results
+            currentUser.results.push(currentResult);
+            
+            // Update the user in the users array
+            const userIndex = users.findIndex(user => user.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex] = currentUser;
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('conmixUsers', JSON.stringify(users));
+            localStorage.setItem('currentConmixUser', JSON.stringify(currentUser));
+            
+            showMessage("Results saved successfully!", "success");
+        }
+
+        function highlightDuplicateRow(index) {
+            // Get all saved result rows
+            const savedResultRows = document.querySelectorAll('#savedResultsBody tr');
+            
+            // Remove any existing highlight
+            savedResultRows.forEach(row => {
+                row.classList.remove('duplicate-highlight');
+            });
+            
+            // Add highlight to the duplicate row
+            if (savedResultRows[index]) {
+                savedResultRows[index].classList.add('duplicate-highlight');
+                
+                // Scroll to the highlighted row
+                savedResultRows[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // Rest of the JavaScript code remains the same
     </script>
 </body>
 </html>

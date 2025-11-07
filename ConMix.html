@@ -165,8 +165,22 @@
             cursor: pointer;
         }
         
+        .previous-results-btn {
+            background: #ffd700;
+            color: #1a2a57;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
         .logout-btn:hover {
             background: rgba(99, 179, 237, 0.1);
+        }
+        
+        .previous-results-btn:hover {
+            background: #e6c200;
         }
         
         .section {
@@ -508,6 +522,7 @@
         .modal-header h2 {
             margin: 0;
             font-size: 1.5rem;
+            color: white;
         }
         
         .close-btn {
@@ -520,6 +535,23 @@
         
         .modal-body {
             padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         
         .form-actions {
@@ -538,6 +570,18 @@
             background: #4299e1;
             color: white;
             flex: 2;
+        }
+        
+        .password-note {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+            text-align: center;
+            font-style: italic;
+            font-size: 14px;
+            color: #856404;
+            border: 1px solid #ffeaa7;
         }
         
         .graph-disclaimer {
@@ -596,6 +640,11 @@
                 width: 100%;
                 justify-content: center;
             }
+            
+            .user-panel {
+                flex-direction: column;
+                gap: 10px;
+            }
         }
     </style>
 </head>
@@ -625,6 +674,7 @@
                     <div class="user-icon" id="userIcon">U</div>
                     <span id="userName">User</span>
                 </div>
+                <button class="previous-results-btn" id="previousResultsBtn">Previous Results</button>
                 <button class="logout-btn" id="logoutBtn">Logout</button>
             </div>
         </div>
@@ -1008,7 +1058,7 @@
             <!-- Action Buttons -->
             <div class="action-buttons">
                 <button class="save-btn" onclick="saveResults()">Save Results</button>
-                <button class="previous-btn" onclick="toggleSavedResults()">Show Previous Results</button>
+                <button class="previous-btn" onclick="toggleSavedResults()">Previous Results</button>
             </div>
             
             <!-- Message Display Area -->
@@ -1068,7 +1118,7 @@
     <div class="modal" id="registerModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Create Account</h2>
+                <h2 style="color: white;">Create Account</h2>
                 <button class="close-btn" id="closeRegisterModal">&times;</button>
             </div>
             <div class="modal-body">
@@ -1089,6 +1139,9 @@
                         <label for="regConfirmPassword">Confirm Password</label>
                         <input type="password" id="regConfirmPassword" required>
                     </div>
+                    <div class="password-note">
+                        <strong>Important:</strong> Please remember your password. There is no "Forgot Password" option available.
+                    </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-cancel" id="cancelRegister">Cancel</button>
                         <button type="submit" class="btn btn-submit">Create Account</button>
@@ -1102,7 +1155,7 @@
     <div class="modal" id="loginModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Login to Your Account</h2>
+                <h2 style="color: white;">Login to Your Account</h2>
                 <button class="close-btn" id="closeLoginModal">&times;</button>
             </div>
             <div class="modal-body">
@@ -1180,6 +1233,7 @@
         const userName = document.getElementById('userName');
         const userIcon = document.getElementById('userIcon');
         const logoutBtn = document.getElementById('logoutBtn');
+        const previousResultsBtn = document.getElementById('previousResultsBtn');
         const gradeInput = document.getElementById('grade');
         const targetStrengthPreview = document.getElementById('targetStrengthPreview');
         const deleteSavedResultBtn = document.getElementById('deleteSavedResultBtn');
@@ -1205,6 +1259,11 @@
         cancelRegister.addEventListener('click', () => registerModal.style.display = 'none');
         cancelLogin.addEventListener('click', () => loginModal.style.display = 'none');
         logoutBtn.addEventListener('click', logout);
+        previousResultsBtn.addEventListener('click', function() {
+            toggleSavedResults();
+            // Scroll to the top of the saved results section
+            document.getElementById('savedResults').scrollIntoView({ behavior: 'smooth' });
+        });
         
         // Event listener for delete saved result button
         deleteSavedResultBtn.addEventListener('click', deleteSavedResult);
@@ -1287,6 +1346,9 @@
                 currentUser = JSON.parse(savedCurrentUser);
                 showUserPanel(currentUser);
             }
+            
+            // Load feedback counts
+            loadFeedbackCounts();
         }
 
         function showUserPanel(user) {
@@ -1797,12 +1859,63 @@
             });
         }
 
+        // Load feedback counts from localStorage
+        function loadFeedbackCounts() {
+            const feedbackData = localStorage.getItem('conmixFeedback');
+            if (feedbackData) {
+                const feedback = JSON.parse(feedbackData);
+                likeCount = feedback.likeCount || 0;
+                dislikeCount = feedback.dislikeCount || 0;
+                
+                // Update display
+                document.getElementById('likeCount').textContent = likeCount;
+                document.getElementById('dislikeCount').textContent = dislikeCount;
+                
+                // Check if current IP has already voted
+                const userIP = getUserIP();
+                if (userIP) {
+                    const userVotes = localStorage.getItem('conmixUserVotes');
+                    if (userVotes) {
+                        const votes = JSON.parse(userVotes);
+                        if (votes[userIP]) {
+                            if (votes[userIP] === 'like') {
+                                isLiked = true;
+                                document.getElementById('likeButton').classList.add('active');
+                            } else if (votes[userIP] === 'dislike') {
+                                isDisliked = true;
+                                document.getElementById('dislikeButton').classList.add('active');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Get user IP address (simulated for demo purposes)
+        function getUserIP() {
+            // In a real application, you would get this from a server-side API
+            // For demo purposes, we'll generate a unique identifier based on browser fingerprint
+            let userFingerprint = localStorage.getItem('userFingerprint');
+            if (!userFingerprint) {
+                userFingerprint = 'user_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('userFingerprint', userFingerprint);
+            }
+            return userFingerprint;
+        }
+
         function toggleLike() {
+            const userIP = getUserIP();
+            const userVotes = localStorage.getItem('conmixUserVotes');
+            let votes = userVotes ? JSON.parse(userVotes) : {};
+            
             if (isLiked) {
+                // User is unliking
                 isLiked = false;
                 likeCount--;
                 document.getElementById('likeButton').classList.remove('active');
+                delete votes[userIP];
             } else {
+                // User is liking
                 isLiked = true;
                 likeCount++;
                 document.getElementById('likeButton').classList.add('active');
@@ -1813,17 +1926,35 @@
                     dislikeCount--;
                     document.getElementById('dislikeButton').classList.remove('active');
                 }
+                
+                votes[userIP] = 'like';
             }
+            
+            // Update counts and save
             document.getElementById('likeCount').textContent = likeCount;
             document.getElementById('dislikeCount').textContent = dislikeCount;
+            
+            localStorage.setItem('conmixFeedback', JSON.stringify({
+                likeCount: likeCount,
+                dislikeCount: dislikeCount
+            }));
+            
+            localStorage.setItem('conmixUserVotes', JSON.stringify(votes));
         }
 
         function toggleDislike() {
+            const userIP = getUserIP();
+            const userVotes = localStorage.getItem('conmixUserVotes');
+            let votes = userVotes ? JSON.parse(userVotes) : {};
+            
             if (isDisliked) {
+                // User is undisliking
                 isDisliked = false;
                 dislikeCount--;
                 document.getElementById('dislikeButton').classList.remove('active');
+                delete votes[userIP];
             } else {
+                // User is disliking
                 isDisliked = true;
                 dislikeCount++;
                 document.getElementById('dislikeButton').classList.add('active');
@@ -1834,9 +1965,20 @@
                     likeCount--;
                     document.getElementById('likeButton').classList.remove('active');
                 }
+                
+                votes[userIP] = 'dislike';
             }
+            
+            // Update counts and save
             document.getElementById('likeCount').textContent = likeCount;
             document.getElementById('dislikeCount').textContent = dislikeCount;
+            
+            localStorage.setItem('conmixFeedback', JSON.stringify({
+                likeCount: likeCount,
+                dislikeCount: dislikeCount
+            }));
+            
+            localStorage.setItem('conmixUserVotes', JSON.stringify(votes));
         }
 
         function saveResults() {
@@ -1890,6 +2032,8 @@
                 displaySavedResults();
                 savedResultsSection.style.display = 'block';
                 displaySavedResultSection.style.display = 'none';
+                // Scroll to the top of the saved results section
+                savedResultsSection.scrollIntoView({ behavior: 'smooth' });
             } else {
                 savedResultsSection.style.display = 'none';
             }

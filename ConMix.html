@@ -2860,6 +2860,1395 @@
             handleExposureChange();
             handleConcreteTypeChange();
         };
+                function updateTargetStrengthPreview() {
+            const gradeValue = parseInt(gradeSelect.value);
+            
+            // Automatically set concrete type based on grade
+            let concreteType;
+            if (gradeValue <= 50) {
+                concreteType = 'conventional';
+            } else {
+                concreteType = 'highStrength';
+            }
+            
+            // Update concrete type dropdown if different
+            if (concreteTypeSelect.value !== concreteType) {
+                concreteTypeSelect.value = concreteType;
+                handleConcreteTypeChange();
+                
+                // Show auto-switch message
+                autoSwitchMessage.innerHTML = `<strong>Auto-switch applied:</strong> Concrete type changed to ${concreteType === 'highStrength' ? 'High Strength Concrete' : 'Conventional Concrete'} based on grade M${gradeValue}.`;
+                autoSwitchMessage.style.display = 'block';
+                
+                // Hide the message after 5 seconds
+                setTimeout(() => {
+                    autoSwitchMessage.style.display = 'none';
+                }, 5000);
+            }
+            
+            // Calculate target strength
+            const fck = gradeValue;
+            const gradeKey = `M${gradeValue}`;
+            const S = stdDeviation[gradeKey] || 5.0; // Default to 5.0 if not found
+            const X = xFactor[gradeKey] || 6.5; // Default to 6.5 if not found
+            
+            const fck1 = fck + 1.65 * S;
+            const fck2 = fck + X;
+            const targetStrength = Math.max(fck1, fck2);
+            
+            // Display target strength preview
+            targetStrengthPreview.style.display = 'block';
+            targetStrengthPreview.innerHTML = `
+                Target Mean Strength: ${targetStrength.toFixed(2)} N/mm²
+            `;
+            
+            // Update WCR restrictions based on exposure
+            updateWCRRestrictions();
+        }
+
+        // Handle cement type change
+        function handleCementTypeChange() {
+            const isPPC = cementTypeSelect.value === 'PPC';
+            
+            // If PPC is selected, hide the entire fly ash section
+            if (isPPC) {
+                flyAshSection.style.display = 'none';
+                useFlyAshCheckbox.checked = false;
+                document.getElementById('flyAshPercentage').disabled = true;
+                document.getElementById('spGravityFlyAsh').disabled = true;
+            } else {
+                flyAshSection.style.display = 'block';
+                useFlyAshCheckbox.disabled = false;
+                document.getElementById('flyAshPercentage').disabled = !useFlyAshCheckbox.checked;
+                document.getElementById('spGravityFlyAsh').disabled = !useFlyAshCheckbox.checked;
+            }
+        }
+
+        // Handle exposure condition change
+        function handleExposureChange() {
+            updateWCRRestrictions();
+            
+            // Update highlight for exposure table
+            highlightExposureCells();
+        }
+
+        // Update WCR restrictions based on exposure conditions
+        function updateWCRRestrictions() {
+            const exposure = document.getElementById('exposure').value;
+            const concreteType = getConcreteType();
+            const expReq = exposureRequirements[exposure][concreteType];
+            const maxWCR = expReq.maxWCR;
+            const currentWCR = parseFloat(waterCementRatioInput.value);
+            
+            // Update WCR restriction info
+            let warningHTML = '';
+            if (currentWCR > maxWCR) {
+                warningHTML = `<div class="warning-message">
+                    <p><strong>Warning:</strong> The entered water-cement ratio (${currentWCR}) exceeds the maximum recommended (${maxWCR}) for ${exposure} exposure condition.</p>
+                    <p>This may affect the durability of the concrete. Consider using a lower water-cement ratio.</p>
+                </div>`;
+            }
+            
+            wcrRestrictionInfo.innerHTML = `
+                <p><strong>Recommended maximum W/C ratio for ${exposure} exposure: ${maxWCR}</strong></p>
+                <p>Concrete type: ${concreteType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
+                ${warningHTML}
+            `;
+            wcrRestrictionInfo.style.display = 'block';
+        }
+
+        // Validate water-cement ratio
+        function validateWaterCementRatio() {
+            const exposure = document.getElementById('exposure').value;
+            const concreteType = getConcreteType();
+            const expReq = exposureRequirements[exposure][concreteType];
+            const maxWCR = expReq.maxWCR;
+            const currentWCR = parseFloat(waterCementRatioInput.value);
+            const validationMessage = document.getElementById('waterCementRatioValidation');
+            
+            if (currentWCR > maxWCR) {
+                waterCementRatioInput.classList.add('input-invalid');
+                waterCementRatioInput.classList.remove('input-valid');
+                validationMessage.textContent = `Warning: W/C ratio exceeds maximum recommended value of ${maxWCR} for ${exposure} exposure`;
+                validationMessage.classList.add('invalid');
+                validationMessage.classList.remove('valid');
+            } else {
+                waterCementRatioInput.classList.add('input-valid');
+                waterCementRatioInput.classList.remove('input-invalid');
+                validationMessage.textContent = `Valid: W/C ratio is within recommended range`;
+                validationMessage.classList.add('valid');
+                validationMessage.classList.remove('invalid');
+            }
+            
+            // Update WCR restrictions
+            updateWCRRestrictions();
+        }
+
+        // Get current grade value as a number
+        function getCurrentGradeValue() {
+            return parseInt(gradeSelect.value);
+        }
+
+        // Handle concrete type change
+        function handleConcreteTypeChange() {
+            const isHighStrength = concreteTypeSelect.value === 'highStrength';
+            
+            if (isHighStrength) {
+                // Show steel fiber section
+                steelFiberSection.classList.remove('hidden-section');
+                
+                // Update grade selection if needed
+                const currentGrade = getCurrentGradeValue();
+                if (currentGrade <= 50) {
+                    gradeSelect.value = '55';
+                    updateTargetStrengthPreview();
+                }
+            } else {
+                // Hide steel fiber section and adjustments
+                steelFiberSection.classList.add('hidden-section');
+                adjustmentsSection.classList.add('hidden-section');
+                
+                // Reset steel fibers checkbox
+                useSteelFibersCheckbox.checked = false;
+                steelFiberPercentageInput.disabled = true;
+                spGravitySteelFibersInput.disabled = true;
+                
+                // Update grade selection if needed
+                const currentGrade = getCurrentGradeValue();
+                if (currentGrade > 50) {
+                    gradeSelect.value = '50';
+                    updateTargetStrengthPreview();
+                }
+            }
+            
+            // Update WCR restrictions
+            updateWCRRestrictions();
+        }
+
+        // Handle steel fibers change
+        function handleSteelFibersChange() {
+            const useSteelFibers = useSteelFibersCheckbox.checked;
+            
+            if (useSteelFibers) {
+                // Enable steel fiber inputs
+                steelFiberPercentageInput.disabled = false;
+                spGravitySteelFibersInput.disabled = false;
+                
+                // Show adjustments section
+                adjustmentsSection.classList.remove('hidden-section');
+                
+                // Update water adjustment based on admixture
+                handleAdmixtureChange();
+                
+                // Update fly ash adjustment based on fly ash selection
+                handleFlyAshChange();
+            } else {
+                // Disable steel fiber inputs
+                steelFiberPercentageInput.disabled = true;
+                spGravitySteelFibersInput.disabled = true;
+                
+                // Hide adjustments section
+                adjustmentsSection.classList.add('hidden-section');
+                
+                // Reset adjustment values
+                waterAdjustmentInput.value = 0;
+                cementAdjustmentInput.value = 0;
+                fineAggregateAdjustmentInput.value = 0;
+                coarseAggregateAdjustmentInput.value = 0;
+                flyAshAdjustmentInput.value = 0;
+            }
+        }
+
+        // Handle fly ash change
+        function handleFlyAshChange() {
+            const useFlyAsh = useFlyAshCheckbox.checked;
+            
+            // Update fly ash inputs enabled state
+            document.getElementById('flyAshPercentage').disabled = !useFlyAsh;
+            document.getElementById('spGravityFlyAsh').disabled = !useFlyAsh;
+            
+            if (useFlyAsh && useSteelFibersCheckbox.checked) {
+                // Show fly ash adjustment
+                flyAshAdjustmentGroup.classList.remove('hidden-section');
+            } else {
+                // Hide fly ash adjustment
+                flyAshAdjustmentGroup.classList.add('hidden-section');
+                flyAshAdjustmentInput.value = 0;
+            }
+        }
+
+        // Handle admixture change
+        function handleAdmixtureChange() {
+            const useAdmixture = document.getElementById('useAdmixture').checked;
+            
+            if (useAdmixture && useSteelFibersCheckbox.checked) {
+                // Disable water adjustment if admixture is used
+                waterAdjustmentInput.disabled = true;
+                waterAdjustmentInput.value = 0;
+                waterAdjustmentInput.title = "Water adjustment is disabled when admixture is used";
+            } else if (useSteelFibersCheckbox.checked) {
+                // Enable water adjustment if admixture is not used
+                waterAdjustmentInput.disabled = false;
+                waterAdjustmentInput.title = "";
+            }
+        }
+
+        function calculateMix() {
+            // Get input values
+            const gradeValue = parseInt(gradeSelect.value);
+            const aggSize = document.getElementById('aggSize').value;
+            const zone = document.getElementById('zone').value;
+            const slump = parseFloat(document.getElementById('slump').value);
+            const exposure = document.getElementById('exposure').value;
+            const spGravityCement = parseFloat(document.getElementById('spGravityCement').value);
+            const spGravityFA = parseFloat(document.getElementById('spGravityFA').value);
+            const spGravityCA = parseFloat(document.getElementById('spGravityCA').value);
+            const absorptionFA = parseFloat(document.getElementById('absorptionFA').value);
+            const absorptionCA = parseFloat(document.getElementById('absorptionCA').value);
+            const useFlyAsh = document.getElementById('useFlyAsh').checked;
+            const flyAshPercentage = useFlyAsh ? parseFloat(document.getElementById('flyAshPercentage').value) : 0;
+            const spGravityFlyAsh = useFlyAsh ? parseFloat(document.getElementById('spGravityFlyAsh').value) : 0;
+            const useAdmixture = document.getElementById('useAdmixture').checked;
+            const admixturePercentage = useAdmixture ? parseFloat(document.getElementById('admixturePercentage').value) : 0;
+            const spGravityAdmixture = useAdmixture ? parseFloat(document.getElementById('spGravityAdmixture').value) : 0;
+            const waterReduction = useAdmixture ? parseFloat(document.getElementById('waterReduction').value) : 0;
+            const selectedWCR = parseFloat(document.getElementById('waterCementRatio').value);
+            const useSteelFibers = document.getElementById('useSteelFibers').checked;
+            const steelFiberPercentage = useSteelFibers ? parseFloat(document.getElementById('steelFiberPercentage').value) : 0;
+            const spGravitySteelFibers = useSteelFibers ? parseFloat(document.getElementById('spGravitySteelFibers').value) : 7.85;
+            const waterAdjustment = useSteelFibers ? parseFloat(document.getElementById('waterAdjustment').value) : 0;
+            const cementAdjustment = useSteelFibers ? parseFloat(document.getElementById('cementAdjustment').value) : 0;
+            const fineAggregateAdjustment = useSteelFibers ? parseFloat(document.getElementById('fineAggregateAdjustment').value) : 0;
+            const coarseAggregateAdjustment = useSteelFibers ? parseFloat(document.getElementById('coarseAggregateAdjustment').value) : 0;
+            const flyAshAdjustment = (useSteelFibers && useFlyAsh) ? parseFloat(document.getElementById('flyAshAdjustment').value) : 0;
+
+            // Format grade for display (M30)
+            const formattedGrade = `M${gradeValue}`;
+            
+            // Get exposure requirements for checking
+            const concreteStructureType = getConcreteType();
+            const expReq = exposureRequirements[exposure][concreteStructureType];
+            const maxAllowedWCR = expReq.maxWCR;
+            
+            // Calculate target strength
+            const fck = gradeValue;
+            const gradeKey = `M${gradeValue}`;
+            const S = stdDeviation[gradeKey] || 5.0; // Default to 5.0 if not found
+            const X = xFactor[gradeKey] || 6.5; // Default to 6.5 if not found
+            
+            const fck1 = fck + 1.65 * S;
+            const fck2 = fck + X;
+            const targetStrength = Math.max(fck1, fck2);
+            
+            document.getElementById('targetStrengthCalc').innerHTML = `
+                <p>Grade of Concrete: <span class="highlight">${formattedGrade}</span></p>
+                <p>Characteristic compressive strength, f<sub>ck</sub> = ${fck} N/mm²</p>
+                <p>Standard deviation, S = ${S} N/mm²</p>
+                <p>Factor X = ${X} N/mm²</p>
+                <p>f<sub>ck</sub> + 1.65 × S = ${fck} + 1.65 × ${S} = <span class="highlight">${fck1.toFixed(2)} N/mm²</span></p>
+                <p>f<sub>ck</sub> + X = ${fck} + ${X} = <span class="highlight">${fck2.toFixed(2)} N/mm²</span></p>
+                <p><strong>Target average compressive strength, f'<sub>ck</sub> = ${targetStrength.toFixed(2)} N/mm²</strong></p>
+            `;
+
+            // Highlight exposure cells
+            highlightExposureCells();
+
+            // Calculate air content
+            const airContent = aggSize === "10" ? 1.5 : (aggSize === "20" ? 1.0 : 0.8);
+            document.getElementById('airContent').innerHTML = `
+                <p>For nominal maximum aggregate size of ${aggSize} mm, entrapped air = <span class="highlight">${airContent}%</span></p>
+                <p>Volume of entrapped air = ${airContent/100} m³</p>
+            `;
+
+            // Calculate water content
+            let baseWaterContent = waterContent[aggSize];
+            let adjustedWaterContent = baseWaterContent;
+            
+            // Adjust for slump
+            if (slump !== 50) {
+                const slumpAdjustment = ((slump - 50) / 25) * 0.03 * baseWaterContent;
+                adjustedWaterContent += slumpAdjustment;
+            }
+            
+            // Apply admixture reduction if used
+            if (useAdmixture) {
+                adjustedWaterContent *= (1 - waterReduction/100);
+            }
+            
+            // Check water content limit (450 kg/m³)
+            if (adjustedWaterContent > 450) {
+                adjustedWaterContent = 450;
+                document.getElementById('waterContentCalc').innerHTML += `
+                    <p class="highlight">Water content limited to 450 kg/m³ as per IS 456</p>
+                `;
+            }
+            
+            document.getElementById('waterContentCalc').innerHTML = `
+                <p>Base water content for ${aggSize} mm aggregate = <span class="highlight">${baseWaterContent} kg/m³</span></p>
+                ${slump !== 50 ? 
+                    `<p>Adjustment for ${slump} mm slump: ${((slump - 50) / 25) * 3}% = ${(((slump - 50) / 25) * 0.03 * baseWaterContent).toFixed(2)} kg/m³</p>` : 
+                    ''}
+                ${useAdmixture ? `<p>Reduction due to admixture: ${waterReduction}%</p>` : ''}
+                <p><strong>Final water content = <span class="highlight">${adjustedWaterContent.toFixed(2)} kg/m³</span></strong></p>
+            `;
+
+            // Calculate cement content
+            let cementContent = adjustedWaterContent / selectedWCR;
+            
+            // Adjust for fly ash if used
+            let flyAshContent = 0;
+            let cementitiousContent = cementContent;
+            
+            if (useFlyAsh) {
+                flyAshContent = cementitiousContent * (flyAshPercentage / 100);
+                cementContent = cementitiousContent - flyAshContent;
+            }
+            
+            document.getElementById('cementContentCalc').innerHTML = `
+                <p>Cementitious content = Water content / Water-cement ratio</p>
+                <p>= ${adjustedWaterContent.toFixed(2)} / ${selectedWCR.toFixed(3)}</p>
+                <p>= <span class="highlight">${cementitiousContent.toFixed(2)} kg/m³</span></p>
+                ${useFlyAsh ? `
+                <p>Fly ash content = ${cementitiousContent.toFixed(2)} × ${flyAshPercentage}% = <span class="highlight">${flyAshContent.toFixed(2)} kg/m³</span></p>
+                <p>Cement content = ${cementitiousContent.toFixed(2)} - ${flyAshContent.toFixed(2)} = <span class="highlight">${cementContent.toFixed(2)} kg/m³</span></p>
+                ` : `
+                <p>Cement content = <span class="highlight">${cementContent.toFixed(2)} kg/m³</span></p>
+                `}
+            `;
+            
+            // Check against exposure requirements
+            let cementContentAdjusted = cementContent;
+            if (cementContent < expReq.minCement) {
+                cementContentAdjusted = expReq.minCement;
+                // Recalculate fly ash if used
+                if (useFlyAsh) {
+                    flyAshContent = cementContentAdjusted * (flyAshPercentage / (100 - flyAshPercentage));
+                    cementitiousContent = cementContentAdjusted + flyAshContent;
+                } else {
+                    cementitiousContent = cementContentAdjusted;
+                }
+                
+                // Recalculate water content if cement content was adjusted
+                adjustedWaterContent = cementitiousContent * selectedWCR;
+            }
+            
+            // Create exposure check message
+            let exposureCheckHTML = `
+                <p>Exposure condition: ${exposure.charAt(0).toUpperCase() + exposure.slice(1)}</p>
+                <p>Concrete type: ${concreteStructureType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
+                <p>Minimum cement content required: ${expReq.minCement} kg/m³</p>
+                <p>Maximum water-cement ratio recommended: ${expReq.maxWCR}</p>
+                <p>Minimum grade required: ${expReq.minGrade || '--'}</p>
+            `;
+            
+            if (cementContent < expReq.minCement) {
+                exposureCheckHTML += `<p class="highlight">Cement content increased to meet exposure requirement: ${cementContentAdjusted.toFixed(2)} kg/m³</p>`;
+            } else {
+                exposureCheckHTML += `<p>Calculated cement content meets exposure requirement</p>`;
+            }
+            
+            // Add warning if W/C ratio exceeds maximum
+            if (selectedWCR > maxAllowedWCR) {
+                exposureCheckHTML += `
+                    <div class="warning-message">
+                        <p><strong>Warning:</strong> The entered water-cement ratio (${selectedWCR}) exceeds the maximum recommended (${maxAllowedWCR}) for ${exposure} exposure condition.</p>
+                        <p>This may affect the durability of the concrete. Consider using a lower water-cement ratio.</p>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('exposureCheck').innerHTML = exposureCheckHTML;
+
+            // Calculate aggregate proportions
+            const baseCAVolume = caVolume[aggSize][zone];
+            let adjustedCAVolume = baseCAVolume;
+            
+            // Adjust for water-cement ratio
+            if (selectedWCR < 0.5) {
+                const adjustment = ((0.5 - selectedWCR) / 0.05) * 0.01;
+                adjustedCAVolume += adjustment;
+            } else if (selectedWCR > 0.5) {
+                const adjustment = ((selectedWCR - 0.5) / 0.05) * 0.01;
+                adjustedCAVolume -= adjustment;
+            }
+            
+            const faVolume = 1 - adjustedCAVolume;
+            
+            document.getElementById('aggregateProportion').innerHTML = `
+                <p>Base volume of coarse aggregate for ${aggSize} mm aggregate, Zone ${zone}, w/c 0.50 = <span class="highlight">${baseCAVolume} m³</span></p>
+                <p>Adjustment for w/c ${selectedWCR.toFixed(3)}: ${((0.5 - selectedWCR) / 0.05) * 0.01} m³</p>
+                <p>Adjusted volume of coarse aggregate = <span class="highlight">${adjustedCAVolume.toFixed(3)} m³</span></p>
+                <p>Volume of fine aggregate = 1 - ${adjustedCAVolume.toFixed(3)} = <span class="highlight">${faVolume.toFixed(3)} m³</span></p>
+            `;
+
+            // Perform mix calculations
+            const volumeCement = cementContentAdjusted / (spGravityCement * 1000);
+            const volumeFlyAsh = useFlyAsh ? flyAshContent / (spGravityFlyAsh * 1000) : 0;
+            const volumeWater = adjustedWaterContent / 1000; // Specific gravity of water is 1
+            const volumeAir = airContent / 100;
+            
+            // Calculate admixture volume if used
+            const admixtureDosage = useAdmixture ? cementitiousContent * (admixturePercentage / 100) : 0;
+            const volumeAdmixture = useAdmixture ? admixtureDosage / (spGravityAdmixture * 1000) : 0;
+            
+            // Calculate steel fiber volume and mass if used
+            const steelFiberVolume = useSteelFibers ? steelFiberPercentage / 100 : 0;
+            const steelFiberMass = useSteelFibers ? steelFiberVolume * spGravitySteelFibers * 1000 : 0;
+            
+            // Show steel fiber calculation if used
+            if (useSteelFibers) {
+                steelFiberCalcSection.classList.remove('hidden-section');
+                document.getElementById('steelFiberCalc').innerHTML = `
+                    <p>Steel Fiber Percentage: ${steelFiberPercentage}%</p>
+                    <p>Specific Gravity of Steel Fibers: ${spGravitySteelFibers}</p>
+                    <p>Volume of Steel Fibers = ${steelFiberPercentage}% = ${steelFiberVolume.toFixed(4)} m³</p>
+                    <p>Mass of Steel Fibers = Volume × Specific Gravity × 1000</p>
+                    <p>= ${steelFiberVolume.toFixed(4)} × ${spGravitySteelFibers} × 1000</p>
+                    <p>= <span class="highlight">${steelFiberMass.toFixed(2)} kg</span></p>
+                `;
+            } else {
+                steelFiberCalcSection.classList.add('hidden-section');
+            }
+            
+            const volumeAllAggregate = 1 - volumeAir - volumeCement - volumeFlyAsh - volumeWater - volumeAdmixture - steelFiberVolume;
+            
+            const massCA = volumeAllAggregate * adjustedCAVolume * spGravityCA * 1000;
+            const massFA = volumeAllAggregate * faVolume * spGravityFA * 1000;
+            
+            // Apply adjustments for high strength concrete with steel fibers
+            let adjustedWater = adjustedWaterContent;
+            let adjustedCement = cementContentAdjusted;
+            let adjustedFlyAsh = flyAshContent;
+            let adjustedFA = massFA;
+            let adjustedCA = massCA;
+            
+            if (useSteelFibers) {
+                // Apply adjustments
+                adjustedWater += adjustedWater * (waterAdjustment / 100);
+                adjustedCement += adjustedCement * (cementAdjustment / 100);
+                adjustedFA -= adjustedFA * (fineAggregateAdjustment / 100);
+                adjustedCA -= adjustedCA * (coarseAggregateAdjustment / 100);
+                
+                if (useFlyAsh) {
+                    adjustedFlyAsh -= adjustedFlyAsh * (flyAshAdjustment / 100);
+                }
+                
+                // Recalculate volumes with adjustments
+                const adjustedVolumeCement = adjustedCement / (spGravityCement * 1000);
+                const adjustedVolumeFlyAsh = useFlyAsh ? adjustedFlyAsh / (spGravityFlyAsh * 1000) : 0;
+                const adjustedVolumeWater = adjustedWater / 1000;
+                
+                // Recalculate aggregate volumes to maintain total volume of 1 m³
+                const adjustedVolumeAllAggregate = 1 - volumeAir - adjustedVolumeCement - adjustedVolumeFlyAsh - adjustedVolumeWater - volumeAdmixture - steelFiberVolume;
+                
+                adjustedFA = adjustedVolumeAllAggregate * faVolume * spGravityFA * 1000;
+                adjustedCA = adjustedVolumeAllAggregate * adjustedCAVolume * spGravityCA * 1000;
+            }
+            
+            document.getElementById('mixCalculations').innerHTML = `
+                <p>a) Total volume = 1 m³</p>
+                <p>b) Volume of entrapped air = ${volumeAir.toFixed(3)} m³</p>
+                <p>c) Volume of cement = ${cementContentAdjusted.toFixed(2)} / (${spGravityCement} × 1000) = ${volumeCement.toFixed(4)} m³</p>
+                ${useFlyAsh ? `<p>d) Volume of fly ash = ${flyAshContent.toFixed(2)} / (${spGravityFlyAsh} × 1000) = ${volumeFlyAsh.toFixed(4)} m³</p>` : ''}
+                <p>${useFlyAsh ? 'e' : 'd'}) Volume of water = ${adjustedWaterContent.toFixed(2)} / 1000 = ${volumeWater.toFixed(4)} m³</p>
+                ${useAdmixture ? `<p>${useFlyAsh ? 'f' : 'e'}) Volume of admixture = ${admixtureDosage.toFixed(2)} / (${spGravityAdmixture} × 1000) = ${volumeAdmixture.toFixed(4)} m³</p>` : ''}
+                ${useSteelFibers ? `<p>${useFlyAsh && useAdmixture ? 'g' : (useFlyAsh || useAdmixture) ? 'f' : 'e'}) Volume of steel fibers = ${steelFiberPercentage}% = ${steelFiberVolume.toFixed(4)} m³</p>` : ''}
+                <p>${useSteelFibers ? (useFlyAsh && useAdmixture ? 'h' : (useFlyAsh || useAdmixture) ? 'g' : 'f') : (useFlyAsh && useAdmixture ? 'g' : (useFlyAsh || useAdmixture) ? 'f' : 'e')}) Volume of all aggregate = [1 - ${volumeAir.toFixed(3)} - ${volumeCement.toFixed(4)}${useFlyAsh ? ` - ${volumeFlyAsh.toFixed(4)}` : ''} - ${volumeWater.toFixed(4)}${useAdmixture ? ` - ${volumeAdmixture.toFixed(4)}` : ''}${useSteelFibers ? ` - ${steelFiberVolume.toFixed(4)}` : ''}] = ${volumeAllAggregate.toFixed(4)} m³</p>
+                <p>${useSteelFibers ? (useFlyAsh && useAdmixture ? 'i' : (useFlyAsh || useAdmixture) ? 'h' : 'g') : (useFlyAsh && useAdmixture ? 'h' : (useFlyAsh || useAdmixture) ? 'g' : 'f')}) Mass of coarse aggregate = ${volumeAllAggregate.toFixed(4)} × ${adjustedCAVolume.toFixed(3)} × ${spGravityCA} × 1000 = <span class="highlight">${massCA.toFixed(2)} kg</span></p>
+                <p>${useSteelFibers ? (useFlyAsh && useAdmixture ? 'j' : (useFlyAsh || useAdmixture) ? 'i' : 'h') : (useFlyAsh && useAdmixture ? 'i' : (useFlyAsh || useAdmixture) ? 'h' : 'g')}) Mass of fine aggregate = ${volumeAllAggregate.toFixed(4)} × ${faVolume.toFixed(3)} × ${spGravityFA} × 1000 = <span class="highlight">${massFA.toFixed(2)} kg</span></p>
+                ${useSteelFibers ? `
+                <div class="adjustment-message">
+                    <p><strong>Adjustments applied for high strength concrete with steel fibers:</strong></p>
+                    <p>Water: +${waterAdjustment}% (${adjustedWater.toFixed(2)} kg)</p>
+                    <p>Cement: +${cementAdjustment}% (${adjustedCement.toFixed(2)} kg)</p>
+                    <p>Fine Aggregate: -${fineAggregateAdjustment}% (${adjustedFA.toFixed(2)} kg)</p>
+                    <p>Coarse Aggregate: -${coarseAggregateAdjustment}% (${adjustedCA.toFixed(2)} kg)</p>
+                    ${useFlyAsh ? `<p>Fly Ash: -${flyAshAdjustment}% (${adjustedFlyAsh.toFixed(2)} kg)</p>` : ''}
+                </div>
+                ` : ''}
+            `;
+
+            // Calculate adjustments for dry aggregates
+            const massFADry = adjustedFA / (1 + absorptionFA/100);
+            const massCADry = adjustedCA / (1 + absorptionCA/100);
+            
+            const extraWaterFA = adjustedFA - massFADry;
+            const extraWaterCA = adjustedCA - massCADry;
+            const totalExtraWater = extraWaterFA + extraWaterCA;
+            
+            // Store current data for saving
+            currentData = {
+                id: Date.now(), // Unique ID for the data
+                grade: formattedGrade,
+                concreteType: concreteTypeSelect.value,
+                timestamp: new Date().toLocaleString(),
+                cement: adjustedCement,
+                flyAsh: adjustedFlyAsh,
+                water: adjustedWater,
+                fineAggregate: adjustedFA,
+                coarseAggregate: adjustedCA,
+                admixture: admixtureDosage,
+                steelFibers: useSteelFibers ? steelFiberMass : 0,
+                useFlyAsh: useFlyAsh,
+                useAdmixture: useAdmixture,
+                useSteelFibers: useSteelFibers,
+                targetStrength: targetStrength.toFixed(2),
+                wcr: selectedWCR.toFixed(3),
+                exposure: exposure,
+                concreteStructureType: concreteStructureType,
+                // Save input parameters for later display
+                inputParameters: {
+                    gradeValue: gradeValue,
+                    aggSize: aggSize,
+                    zone: zone,
+                    slump: slump,
+                    spGravityCement: spGravityCement,
+                    spGravityFA: spGravityFA,
+                    spGravityCA: spGravityCA,
+                    absorptionFA: absorptionFA,
+                    absorptionCA: absorptionCA,
+                    flyAshPercentage: flyAshPercentage,
+                    spGravityFlyAsh: spGravityFlyAsh,
+                    admixturePercentage: admixturePercentage,
+                    spGravityAdmixture: spGravityAdmixture,
+                    waterReduction: waterReduction,
+                    steelFiberPercentage: steelFiberPercentage,
+                    spGravitySteelFibers: spGravitySteelFibers
+                },
+                // Save chart data
+                chartData: {
+                    cement: adjustedCement,
+                    flyAsh: adjustedFlyAsh,
+                    water: adjustedWater,
+                    fineAggregate: adjustedFA,
+                    coarseAggregate: adjustedCA,
+                    admixture: admixtureDosage,
+                    steelFibers: useSteelFibers ? steelFiberMass : 0
+                }
+            };
+            
+            // Display final proportions
+            document.getElementById('finalProportions').innerHTML = `
+                <h3>Mix Proportions (per m³ of Concrete)</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <tr>
+                            <th>Material</th>
+                            <th>Quantity (kg)</th>
+                            <th>Ratio (by weight)</th>
+                        </tr>
+                        <tr>
+                            <td>Cement</td>
+                            <td>${adjustedCement.toFixed(2)}</td>
+                            <td>1</td>
+                        </tr>
+                        ${useFlyAsh ? `
+                        <tr>
+                            <td>Fly Ash</td>
+                            <td>${adjustedFlyAsh.toFixed(2)}</td>
+                            <td>${(adjustedFlyAsh / adjustedCement).toFixed(3)}</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                            <td>Water</td>
+                            <td>${adjustedWater.toFixed(2)}</td>
+                            <td>${(adjustedWater / adjustedCement).toFixed(3)}</td>
+                        </tr>
+                        <tr>
+                            <td>Fine Aggregate</td>
+                            <td>${adjustedFA.toFixed(2)}</td>
+                            <td>${(adjustedFA / adjustedCement).toFixed(3)}</td>
+                        </tr>
+                        <tr>
+                            <td>Coarse Aggregate</td>
+                            <td>${adjustedCA.toFixed(2)}</td>
+                            <td>${(adjustedCA / adjustedCement).toFixed(3)}</td>
+                        </tr>
+                        ${useAdmixture ? `
+                        <tr>
+                            <td>Admixture</td>
+                            <td>${admixtureDosage.toFixed(2)}</td>
+                            <td>${(admixtureDosage / adjustedCement).toFixed(3)}</td>
+                        </tr>
+                        ` : ''}
+                        ${useSteelFibers ? `
+                        <tr>
+                            <td>Steel Fibers</td>
+                            <td>${steelFiberMass.toFixed(2)}</td>
+                            <td>${(steelFiberMass / adjustedCement).toFixed(3)}</td>
+                        </tr>
+                        ` : ''}
+                    </table>
+                </div>
+                
+                <h3>For Dry Aggregates</h3>
+                <p>If aggregates are in dry condition:</p>
+                <ul>
+                    <li>Fine Aggregate (dry) = ${massFADry.toFixed(2)} kg</li>
+                    <li>Coarse Aggregate (dry) = ${massCADry.toFixed(2)} kg</li>
+                    <li>Extra water to be added = ${totalExtraWater.toFixed(2)} kg</li>
+                </ul>
+                
+                <p><strong>Final Water Content (with dry aggregates) = ${(adjustedWater + totalExtraWater).toFixed(2)} kg</strong></p>
+            `;
+
+            // Create material quantities pie chart
+            createMaterialChart(
+                adjustedCement,
+                adjustedFlyAsh,
+                adjustedWater,
+                adjustedFA,
+                adjustedCA,
+                admixtureDosage,
+                useSteelFibers ? steelFiberMass : 0
+            );
+
+            // Show results section
+            document.getElementById('results').style.display = 'block';
+            
+            // Clear any previous messages
+            document.getElementById('messageArea').innerHTML = '';
+        }
+
+        function createMaterialChart(cement, flyAsh, water, fineAgg, coarseAgg, admixture, steelFibers = 0) {
+            const ctx = document.getElementById('materialChart').getContext('2d');
+            
+            // Destroy previous chart if exists
+            if (materialChart) {
+                materialChart.destroy();
+            }
+            
+            // Prepare data for the chart
+            const materials = [
+                { name: 'Cement', value: cement, color: 'rgb(54, 162, 235)' },
+                { name: 'Fly Ash', value: flyAsh, color: 'rgb(153, 102, 255)' },
+                { name: 'Water', value: water, color: 'rgb(75, 192, 192)' },
+                { name: 'Fine Aggregate', value: fineAgg, color: 'rgb(255, 159, 64)' },
+                { name: 'Coarse Aggregate', value: coarseAgg, color: 'rgb(255, 99, 132)' },
+                { name: 'Admixture', value: admixture, color: 'rgb(201, 203, 207)' },
+                { name: 'Steel Fibers', value: steelFibers, color: 'rgb(128, 128, 128)' }
+            ];
+            
+            // Filter out materials with zero value
+            const filteredMaterials = materials.filter(material => material.value > 0);
+            
+            // Calculate total for percentages
+            const total = filteredMaterials.reduce((sum, material) => sum + material.value, 0);
+            
+            materialChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: filteredMaterials.map(material => `${material.name} (${((material.value / total) * 100).toFixed(1)}%)`),
+                    datasets: [{
+                        data: filteredMaterials.map(material => material.value),
+                        backgroundColor: filteredMaterials.map(material => material.color),
+                        borderColor: 'white',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    family: "'Times New Roman', serif"
+                                },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label.split(' (')[0]}: ${value.toFixed(2)} kg (${percentage}%)`;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Material Quantities per m³ of Concrete',
+                            font: {
+                                size: 16,
+                                family: "'Times New Roman', serif"
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function saveData() {
+            if (!currentData) {
+                showMessage("No data to save. Please calculate mix proportions first.", "error");
+                return;
+            }
+            
+            if (!currentUser) {
+                showMessage("Please login to save data.", "error");
+                return;
+            }
+            
+            // Check if this data is already saved (by comparing key parameters)
+            const existingDataIndex = currentUser.data.findIndex(data => 
+                data.grade === currentData.grade &&
+                Math.abs(data.wcr - currentData.wcr) < 0.001 &&
+                data.concreteType === currentData.concreteType
+            );
+            
+            if (existingDataIndex !== -1) {
+                // Show the saved data section
+                showSavedData();
+                
+                // Highlight the duplicate row with blinking animation
+                highlightDuplicateRow(existingDataIndex);
+                
+                showMessage("This data is already saved. The existing data has been highlighted.", "error");
+                return;
+            }
+            
+            // Add to user's saved data
+            currentUser.data.push(currentData);
+            
+            // Update the user in the users array
+            const userIndex = users.findIndex(user => user.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex] = currentUser;
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('conmixUsers', JSON.stringify(users));
+            localStorage.setItem('currentConmixUser', JSON.stringify(currentUser));
+            
+            showMessage("Data saved successfully!", "success");
+        }
+
+        function showSavedData() {
+            if (!currentUser) {
+                showMessage("Please login to view your saved data.", "error");
+                return;
+            }
+            
+            const savedDataSection = document.getElementById('savedData');
+            const resultsSection = document.getElementById('results');
+            const displaySavedDataSection = document.getElementById('displaySavedData');
+            
+            // Hide other sections and show saved data
+            resultsSection.style.display = 'none';
+            displaySavedDataSection.style.display = 'none';
+            savedDataSection.style.display = 'block';
+            
+            // Populate the saved data table
+            displaySavedDataTable();
+            
+            // Scroll to the saved data section
+            savedDataSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function displaySavedDataTable() {
+            const savedDataBody = document.getElementById('savedDataBody');
+            savedDataBody.innerHTML = '';
+            
+            if (!currentUser || currentUser.data.length === 0) {
+                savedDataBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No saved data found.</td></tr>';
+                return;
+            }
+            
+            currentUser.data.forEach((data, index) => {
+                const row = document.createElement('tr');
+                row.className = 'saved-data-item';
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${data.concreteType === 'highStrength' ? 'High Strength' : 'Conventional'}</td>
+                    <td>${data.timestamp}</td>
+                    <td>
+                        <button class="open-btn" onclick="openSavedData(${index})">Open</button>
+                        <button class="delete-btn" onclick="deleteSavedData(${index})">Delete</button>
+                        <button class="print-btn" onclick="downloadSavedData(${index})">Download</button>
+                    </td>
+                `;
+                savedDataBody.appendChild(row);
+            });
+        }
+
+        function openSavedData(index) {
+            const data = currentUser.data[index];
+            const savedDataSection = document.getElementById('savedData');
+            const displaySection = document.getElementById('displaySavedData');
+            const content = document.getElementById('savedDataContent');
+            
+            // Store the index of the currently viewing data
+            currentlyViewingDataIndex = index;
+            
+            // Create material quantities table
+            let materialsTable = `
+                <h3>Mix Proportions (per m³ of Concrete)</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <tr>
+                            <th>Material</th>
+                            <th>Quantity (kg)</th>
+                            <th>Ratio (by weight)</th>
+                        </tr>
+                        <tr>
+                            <td>Cement</td>
+                            <td>${data.cement.toFixed(2)}</td>
+                            <td>1</td>
+                        </tr>
+            `;
+            
+            if (data.useFlyAsh) {
+                materialsTable += `
+                    <tr>
+                        <td>Fly Ash</td>
+                        <td>${data.flyAsh.toFixed(2)}</td>
+                        <td>${(data.flyAsh / data.cement).toFixed(3)}</td>
+                    </tr>
+                `;
+            }
+            
+            materialsTable += `
+                    <tr>
+                        <td>Water</td>
+                        <td>${data.water.toFixed(2)}</td>
+                        <td>${(data.water / data.cement).toFixed(3)}</td>
+                    </tr>
+                    <tr>
+                        <td>Fine Aggregate</td>
+                        <td>${data.fineAggregate.toFixed(2)}</td>
+                        <td>${(data.fineAggregate / data.cement).toFixed(3)}</td>
+                    </tr>
+                    <tr>
+                        <td>Coarse Aggregate</td>
+                        <td>${data.coarseAggregate.toFixed(2)}</td>
+                        <td>${(data.coarseAggregate / data.cement).toFixed(3)}</td>
+                    </tr>
+            `;
+            
+            if (data.useAdmixture) {
+                materialsTable += `
+                    <tr>
+                        <td>Admixture</td>
+                        <td>${data.admixture.toFixed(2)}</td>
+                        <td>${(data.admixture / data.cement).toFixed(3)}</td>
+                    </tr>
+                `;
+            }
+            
+            if (data.useSteelFibers) {
+                materialsTable += `
+                    <tr>
+                        <td>Steel Fibers</td>
+                        <td>${data.steelFibers.toFixed(2)}</td>
+                        <td>${(data.steelFibers / data.cement).toFixed(3)}</td>
+                    </tr>
+                `;
+            }
+            
+            materialsTable += '</table></div>';
+            
+            // Create input parameters table
+            let inputParametersTable = `
+                <h3>Input Parameters</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                        </tr>
+                        <tr>
+                            <td>Grade of Concrete</td>
+                            <td>${data.grade}</td>
+                        </tr>
+                        <tr>
+                            <td>Type of Concrete</td>
+                            <td>${data.concreteType === 'highStrength' ? 'High Strength Concrete' : 'Conventional Concrete'}</td>
+                        </tr>
+                        <tr>
+                            <td>Nominal Maximum Aggregate Size</td>
+                            <td>${data.inputParameters.aggSize} mm</td>
+                        </tr>
+                        <tr>
+                            <td>Zone of Fine Aggregate</td>
+                            <td>Zone ${data.inputParameters.zone}</td>
+                        </tr>
+                        <tr>
+                            <td>Required Slump</td>
+                            <td>${data.inputParameters.slump} mm</td>
+                        </tr>
+                        <tr>
+                            <td>Specific Gravity of Cement</td>
+                            <td>${data.inputParameters.spGravityCement}</td>
+                        </tr>
+                        <tr>
+                            <td>Specific Gravity of Fine Aggregate</td>
+                            <td>${data.inputParameters.spGravityFA}</td>
+                        </tr>
+                        <tr>
+                            <td>Specific Gravity of Coarse Aggregate</td>
+                            <td>${data.inputParameters.spGravityCA}</td>
+                        </tr>
+                        <tr>
+                            <td>Water Absorption of FA</td>
+                            <td>${data.inputParameters.absorptionFA}%</td>
+                        </tr>
+                        <tr>
+                            <td>Water Absorption of CA</td>
+                            <td>${data.inputParameters.absorptionCA}%</td>
+                        </tr>
+                        <tr>
+                            <td>Water-Cement Ratio</td>
+                            <td>${data.wcr}</td>
+                        </tr>
+            `;
+            
+            if (data.useFlyAsh) {
+                inputParametersTable += `
+                    <tr>
+                        <td>Fly Ash Percentage</td>
+                        <td>${data.inputParameters.flyAshPercentage}%</td>
+                    </tr>
+                    <tr>
+                        <td>Specific Gravity of Fly Ash</td>
+                        <td>${data.inputParameters.spGravityFlyAsh}</td>
+                    </tr>
+                `;
+            }
+            
+            if (data.useAdmixture) {
+                inputParametersTable += `
+                    <tr>
+                        <td>Admixture Percentage</td>
+                        <td>${data.inputParameters.admixturePercentage}%</td>
+                    </tr>
+                    <tr>
+                        <td>Specific Gravity of Admixture</td>
+                        <td>${data.inputParameters.spGravityAdmixture}</td>
+                    </tr>
+                    <tr>
+                        <td>Water Reduction Percentage</td>
+                        <td>${data.inputParameters.waterReduction}%</td>
+                    </tr>
+                `;
+            }
+            
+            if (data.useSteelFibers) {
+                inputParametersTable += `
+                    <tr>
+                        <td>Steel Fiber Percentage</td>
+                        <td>${data.inputParameters.steelFiberPercentage}%</td>
+                    </tr>
+                    <tr>
+                        <td>Specific Gravity of Steel Fibers</td>
+                        <td>${data.inputParameters.spGravitySteelFibers}</td>
+                    </tr>
+                `;
+            }
+            
+            inputParametersTable += `
+                        <tr>
+                            <td>Exposure Condition</td>
+                            <td>${data.exposure}</td>
+                        </tr>
+                        <tr>
+                            <td>Concrete Structure</td>
+                            <td>${data.concreteStructureType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+            
+            content.innerHTML = `
+                <div class="result-box">
+                    <h3>Grade: ${data.grade}</h3>
+                    <p>Type: ${data.concreteType === 'highStrength' ? 'High Strength Concrete' : 'Conventional Concrete'}</p>
+                    <p>Target Strength: ${data.targetStrength} N/mm²</p>
+                    <p>Water-Cement Ratio: ${data.wcr}</p>
+                    <p>Exposure Condition: ${data.exposure}</p>
+                    <p>Concrete Structure: ${data.concreteStructureType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
+                    <p>Saved on: ${data.timestamp}</p>
+                    ${materialsTable}
+                    ${inputParametersTable}
+                </div>
+                <div class="chart-container">
+                    <canvas id="savedMaterialChart"></canvas>
+                </div>
+            `;
+            
+            // Create pie chart for saved data
+            createSavedMaterialChart(
+                data.chartData.cement,
+                data.chartData.flyAsh,
+                data.chartData.water,
+                data.chartData.fineAggregate,
+                data.chartData.coarseAggregate,
+                data.chartData.admixture,
+                data.chartData.steelFibers
+            );
+            
+            savedDataSection.style.display = 'none';
+            displaySection.style.display = 'block';
+            
+            // Scroll to the saved data section
+            displaySection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function createSavedMaterialChart(cement, flyAsh, water, fineAgg, coarseAgg, admixture, steelFibers = 0) {
+            const ctx = document.getElementById('savedMaterialChart').getContext('2d');
+            
+            // Destroy previous chart if exists
+            if (savedMaterialChart) {
+                savedMaterialChart.destroy();
+            }
+            
+            // Prepare data for the chart
+            const materials = [
+                { name: 'Cement', value: cement, color: 'rgb(54, 162, 235)' },
+                { name: 'Fly Ash', value: flyAsh, color: 'rgb(153, 102, 255)' },
+                { name: 'Water', value: water, color: 'rgb(75, 192, 192)' },
+                { name: 'Fine Aggregate', value: fineAgg, color: 'rgb(255, 159, 64)' },
+                { name: 'Coarse Aggregate', value: coarseAgg, color: 'rgb(255, 99, 132)' },
+                { name: 'Admixture', value: admixture, color: 'rgb(201, 203, 207)' },
+                { name: 'Steel Fibers', value: steelFibers, color: 'rgb(128, 128, 128)' }
+            ];
+            
+            // Filter out materials with zero value
+            const filteredMaterials = materials.filter(material => material.value > 0);
+            
+            // Calculate total for percentages
+            const total = filteredMaterials.reduce((sum, material) => sum + material.value, 0);
+            
+            savedMaterialChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: filteredMaterials.map(material => `${material.name} (${((material.value / total) * 100).toFixed(1)}%)`),
+                    datasets: [{
+                        data: filteredMaterials.map(material => material.value),
+                        backgroundColor: filteredMaterials.map(material => material.color),
+                        borderColor: 'white',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    family: "'Times New Roman', serif"
+                                },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label.split(' (')[0]}: ${value.toFixed(2)} kg (${percentage}%)`;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Material Quantities per m³ of Concrete',
+                            font: {
+                                size: 16,
+                                family: "'Times New Roman', serif"
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function deleteSavedData(index) {
+            // If index is not provided, use the currently viewing data index
+            const dataIndex = index !== undefined ? index : currentlyViewingDataIndex;
+            
+            if (dataIndex === null || dataIndex === undefined) {
+                showMessage("No data selected for deletion.", "error");
+                return;
+            }
+            
+            if (!confirm("Are you sure you want to delete this saved data?")) {
+                return;
+            }
+            
+            // Remove the data from the user's saved data
+            currentUser.data.splice(dataIndex, 1);
+            
+            // Update the user in the users array
+            const userIndex = users.findIndex(user => user.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex] = currentUser;
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('conmixUsers', JSON.stringify(users));
+            localStorage.setItem('currentConmixUser', JSON.stringify(currentUser));
+            
+            // Reset currently viewing data index
+            currentlyViewingDataIndex = null;
+            
+            // If we're in the display section, go back to the saved data list
+            if (document.getElementById('displaySavedData').style.display !== 'none') {
+                document.getElementById('displaySavedData').style.display = 'none';
+                document.getElementById('savedData').style.display = 'block';
+                displaySavedDataTable();
+            } else {
+                // Otherwise just refresh the table
+                displaySavedDataTable();
+            }
+            
+            showMessage("Data deleted successfully!", "success");
+        }
+
+        function downloadSavedData(index) {
+            const data = currentUser.data[index];
+            
+            // Create a temporary div for printing
+            const printContent = document.createElement('div');
+            printContent.style.padding = '20px';
+            printContent.style.fontFamily = "'Times New Roman', serif";
+            
+            // Create the content for printing
+            printContent.innerHTML = `
+                <h1 style="text-align: center; color: #1a2a57;">ConMix - Concrete Mix Design</h1>
+                <h2 style="text-align: center; color: #2c3e50;">Mix Design Report</h2>
+                <hr>
+                <div style="margin-bottom: 20px;">
+                    <h3>Project Information</h3>
+                    <p><strong>Grade of Concrete:</strong> ${data.grade}</p>
+                    <p><strong>Type of Concrete:</strong> ${data.concreteType === 'highStrength' ? 'High Strength Concrete' : 'Conventional Concrete'}</p>
+                    <p><strong>Target Strength:</strong> ${data.targetStrength} N/mm²</p>
+                    <p><strong>Water-Cement Ratio:</strong> ${data.wcr}</p>
+                    <p><strong>Exposure Condition:</strong> ${data.exposure}</p>
+                    <p><strong>Concrete Structure:</strong> ${data.concreteStructureType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
+                    <p><strong>Date:</strong> ${data.timestamp}</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3>Mix Proportions (per m³ of Concrete)</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="background-color: #f2f2f2;">
+                            <th style="border: 1px solid #ddd; padding: 8px;">Material</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">Quantity (kg)</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">Ratio (by weight)</th>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Cement</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.cement.toFixed(2)}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">1</td>
+                        </tr>
+                        ${data.useFlyAsh ? `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Fly Ash</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.flyAsh.toFixed(2)}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${(data.flyAsh / data.cement).toFixed(3)}</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Water</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.water.toFixed(2)}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${(data.water / data.cement).toFixed(3)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Fine Aggregate</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.fineAggregate.toFixed(2)}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${(data.fineAggregate / data.cement).toFixed(3)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Coarse Aggregate</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.coarseAggregate.toFixed(2)}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${(data.coarseAggregate / data.cement).toFixed(3)}</td>
+                        </tr>
+                        ${data.useAdmixture ? `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Admixture</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.admixture.toFixed(2)}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${(data.admixture / data.cement).toFixed(3)}</td>
+                        </tr>
+                        ` : ''}
+                        ${data.useSteelFibers ? `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Steel Fibers</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.steelFibers.toFixed(2)}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${(data.steelFibers / data.cement).toFixed(3)}</td>
+                        </tr>
+                        ` : ''}
+                    </table>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3>Input Parameters</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="background-color: #f2f2f2;">
+                            <th style="border: 1px solid #ddd; padding: 8px;">Parameter</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">Value</th>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Grade of Concrete</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.grade}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Nominal Maximum Aggregate Size</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.aggSize} mm</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Zone of Fine Aggregate</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Zone ${data.inputParameters.zone}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Required Slump</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.slump} mm</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Specific Gravity of Cement</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.spGravityCement}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Specific Gravity of Fine Aggregate</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.spGravityFA}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Specific Gravity of Coarse Aggregate</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.spGravityCA}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Water Absorption of FA</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.absorptionFA}%</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Water Absorption of CA</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.absorptionCA}%</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Water-Cement Ratio</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.wcr}</td>
+                        </tr>
+                        ${data.useFlyAsh ? `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Fly Ash Percentage</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.flyAshPercentage}%</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Specific Gravity of Fly Ash</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.spGravityFlyAsh}</td>
+                        </tr>
+                        ` : ''}
+                        ${data.useAdmixture ? `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Admixture Percentage</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.admixturePercentage}%</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Specific Gravity of Admixture</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.spGravityAdmixture}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Water Reduction Percentage</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.waterReduction}%</td>
+                        </tr>
+                        ` : ''}
+                        ${data.useSteelFibers ? `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Steel Fiber Percentage</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.steelFiberPercentage}%</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Specific Gravity of Steel Fibers</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.inputParameters.spGravitySteelFibers}</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Exposure Condition</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.exposure}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">Concrete Structure</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${data.concreteStructureType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div style="margin-top: 30px; font-style: italic; text-align: center;">
+                    <p>Generated by ConMix - Concrete Mix Design Proportioning Calculator</p>
+                    <p>IS 10262 : 2019 & IS 456 : 2000</p>
+                </div>
+            `;
+            
+            // Use html2canvas and jsPDF to create PDF
+            html2canvas(printContent).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 295;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                
+                let position = 0;
+                
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                pdf.save(`ConMix_${data.grade}_${data.timestamp.replace(/[/:\\]/g, '_')}.pdf`);
+            });
+        }
+
+        function printSavedData() {
+            if (currentlyViewingDataIndex === null) {
+                showMessage("No data selected for printing.", "error");
+                return;
+            }
+            
+            downloadSavedData(currentlyViewingDataIndex);
+        }
+
+        function highlightDuplicateRow(index) {
+            // Get all saved data rows
+            const savedDataRows = document.querySelectorAll('#savedDataBody tr');
+            
+            // Remove any existing highlight
+            savedDataRows.forEach(row => {
+                row.classList.remove('duplicate-highlight');
+            });
+            
+            // Add highlight to the duplicate row
+            if (savedDataRows[index]) {
+                savedDataRows[index].classList.add('duplicate-highlight');
+                
+                // Scroll to the highlighted row
+                savedDataRows[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // Initialize with a sample calculation
+        window.onload = function() {
+            checkUserLogin();
+            highlightExposureCells();
+            updateTargetStrengthPreview();
+            handleCementTypeChange();
+            handleExposureChange();
+            handleConcreteTypeChange();
+            validateWaterCementRatio();
+        };
+    </script>
+</body>
+</html>
     </script>
 </body>
 </html>

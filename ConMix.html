@@ -6,7 +6,7 @@
     <title>ConMix - Concrete Mix Design Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* All CSS styles remain the same as in the original file */
+        /* All previous CSS styles remain the same */
         * {
             font-family: "Times New Roman", serif;
             box-sizing: border-box;
@@ -695,6 +695,57 @@
             border-radius: 4px;
             font-size: 14px;
         }
+        
+        .hidden-section {
+            display: none;
+        }
+        
+        .adjustment-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .adjustment-input-group label {
+            min-width: 150px;
+            margin-bottom: 0;
+        }
+        
+        .adjustment-input-group input {
+            width: 100px;
+        }
+        
+        .adjustment-input-group span {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .auto-switch-message {
+            background-color: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .steel-fiber-calculation {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border-left: 4px solid #2c3e50;
+        }
+        
+        .wcr-restriction-info {
+            background-color: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -739,10 +790,45 @@
             <div id="adjustmentMessage" class="adjustment-message" style="display: none;">
                 <!-- Auto-adjustment messages will appear here -->
             </div>
+            <div id="autoSwitchMessage" class="auto-switch-message" style="display: none;">
+                <!-- Auto-switch messages will appear here -->
+            </div>
             <div class="input-grid">
                 <div class="input-group">
-                    <label for="grade">Grade of Concrete (e.g., M30 or 30)</label>
-                    <input type="text" id="grade" placeholder="e.g., M30, 30, M40, 40 (Max: M80)" value="M30">
+                    <label for="concreteType">Type of Concrete</label>
+                    <select id="concreteType">
+                        <option value="conventional">Conventional Concrete</option>
+                        <option value="highStrength">High Strength Concrete</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="grade" id="gradeLabel">Grade of Concrete</label>
+                    <select id="grade">
+                        <option value="10">M10</option>
+                        <option value="15">M15</option>
+                        <option value="20">M20</option>
+                        <option value="25">M25</option>
+                        <option value="30" selected>M30</option>
+                        <option value="35">M35</option>
+                        <option value="40">M40</option>
+                        <option value="45">M45</option>
+                        <option value="50">M50</option>
+                        <option value="55">M55</option>
+                        <option value="60">M60</option>
+                        <option value="65">M65</option>
+                        <option value="70">M70</option>
+                        <option value="75">M75</option>
+                        <option value="80">M80</option>
+                        <option value="85">M85</option>
+                        <option value="90">M90</option>
+                        <option value="95">M95</option>
+                        <option value="100">M100</option>
+                        <option value="105">M105</option>
+                        <option value="110">M110</option>
+                        <option value="115">M115</option>
+                        <option value="120">M120</option>
+                    </select>
                     <div id="targetStrengthPreview" class="target-strength-preview">
                         <!-- Target strength preview will appear here -->
                     </div>
@@ -809,8 +895,9 @@
                 <div class="input-group">
                     <label for="waterCementRatio" id="waterCementRatioLabel">Water-Cement Ratio</label>
                     <input type="number" id="waterCementRatio" value="0.45" step="0.01" min="0.3" max="0.7">
-                    <p style="font-size: 12px; color: #666; margin-top: 5px;">Enter the desired water-cement ratio (typically between 0.3 and 0.7)</p>
-                    <div id="wcrRestrictionNote" class="restricted-note" style="display: none;"></div>
+                    <div id="wcrRestrictionInfo" class="wcr-restriction-info" style="display: none;">
+                        <!-- WCR restriction info will appear here -->
+                    </div>
                 </div>
             </div>
             
@@ -860,6 +947,67 @@
                     <label for="waterReduction">Water Reduction Percentage (%)</label>
                     <input type="number" id="waterReduction" value="23" step="1" min="0" max="40">
                 </div>
+            </div>
+            
+            <!-- Steel Fiber Properties (Only for High Strength Concrete) -->
+            <div id="steelFiberSection" class="hidden-section">
+                <h3>Steel Fiber Properties (Optional for High Strength Concrete)</h3>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="useSteelFibers">Use Steel Fibers</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="useSteelFibers">
+                            <label for="useSteelFibers">Yes</label>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="steelFiberPercentage">Steel Fiber Percentage (% by volume of concrete)</label>
+                        <input type="number" id="steelFiberPercentage" value="1.0" step="0.1" min="1" max="10" disabled>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="spGravitySteelFibers">Specific Gravity of Steel Fibers</label>
+                        <input type="number" id="spGravitySteelFibers" value="7.85" step="0.01" min="7.0" max="8.0" disabled>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Material Adjustments Section (Only for High Strength Concrete with Steel Fibers) -->
+        <div id="adjustmentsSection" class="section hidden-section">
+            <h2>Material Adjustments for High Strength Concrete with Steel Fibers</h2>
+            <p>Adjust the material quantities based on steel fiber addition. Values are percentage adjustments.</p>
+            
+            <div class="adjustment-input-group">
+                <label for="waterAdjustment">Water Adjustment (%)</label>
+                <input type="number" id="waterAdjustment" value="0" step="0.1" min="1" max="10">
+                <span>+</span>
+                <p style="font-size: 12px; color: #666;">Applied only if superplasticizer is not used</p>
+            </div>
+            
+            <div class="adjustment-input-group">
+                <label for="cementAdjustment">Cement Adjustment (%)</label>
+                <input type="number" id="cementAdjustment" value="0" step="0.1" min="1" max="10">
+                <span>+</span>
+            </div>
+            
+            <div class="adjustment-input-group">
+                <label for="fineAggregateAdjustment">Fine Aggregate Adjustment (%)</label>
+                <input type="number" id="fineAggregateAdjustment" value="0" step="0.1" min="1" max="10">
+                <span>-</span>
+            </div>
+            
+            <div class="adjustment-input-group">
+                <label for="coarseAggregateAdjustment">Coarse Aggregate Adjustment (%)</label>
+                <input type="number" id="coarseAggregateAdjustment" value="0" step="0.1" min="1" max="10">
+                <span>-</span>
+            </div>
+            
+            <div id="flyAshAdjustmentGroup" class="adjustment-input-group hidden-section">
+                <label for="flyAshAdjustment">Fly Ash Adjustment (%)</label>
+                <input type="number" id="flyAshAdjustment" value="0" step="0.1" min="1" max="15">
+                <span>-</span>
             </div>
         </div>
         
@@ -1084,6 +1232,14 @@
                 </div>
             </div>
             
+            <!-- Steel Fiber Calculation Section (if applicable) -->
+            <div id="steelFiberCalcSection" class="section hidden-section">
+                <h2>Steel Fiber Calculation</h2>
+                <div id="steelFiberCalc" class="steel-fiber-calculation">
+                    <!-- Steel fiber calculation will appear here -->
+                </div>
+            </div>
+            
             <!-- Mix Calculations Section -->
             <div class="section">
                 <h2>Mix Calculations</h2>
@@ -1126,6 +1282,7 @@
                     <tr>
                         <th>Sr. No.</th>
                         <th>Grade of Concrete</th>
+                        <th>Type of Concrete</th>
                         <th>Date & Time</th>
                         <th>Water-Cement Ratio</th>
                         <th>Action</th>
@@ -1231,20 +1388,24 @@
     </div>
 
     <script>
-        // Standard deviation values
+        // Standard deviation values - Extended for high strength concrete
         const stdDeviation = {
             "M10": 3.5, "M15": 3.5,
             "M20": 4.0, "M25": 4.0,
             "M30": 5.0, "M35": 5.0, "M40": 5.0, "M45": 5.0, "M50": 5.0, "M55": 5.0, "M60": 5.0,
-            "M65": 6.0, "M70": 6.0, "M75": 6.0, "M80": 6.0
+            "M65": 6.0, "M70": 6.0, "M75": 6.0, "M80": 6.0,
+            "M85": 6.5, "M90": 6.5, "M95": 6.5, "M100": 6.5,
+            "M105": 7.0, "M110": 7.0, "M115": 7.0, "M120": 7.0
         };
 
-        // X factor values
+        // X factor values - Extended for high strength concrete
         const xFactor = {
             "M10": 5.0, "M15": 5.0,
             "M20": 5.5, "M25": 5.5,
             "M30": 6.5, "M35": 6.5, "M40": 6.5, "M45": 6.5, "M50": 6.5, "M55": 6.5, "M60": 6.5,
-            "M65": 8.0, "M70": 8.0, "M75": 8.0, "M80": 8.0
+            "M65": 8.0, "M70": 8.0, "M75": 8.0, "M80": 8.0,
+            "M85": 8.5, "M90": 8.5, "M95": 8.5, "M100": 8.5,
+            "M105": 9.0, "M110": 9.0, "M115": 9.0, "M120": 9.0
         };
 
         // Water content values
@@ -1302,17 +1463,32 @@
         const userIcon = document.getElementById('userIcon');
         const logoutBtn = document.getElementById('logoutBtn');
         const previousResultsBtn = document.getElementById('previousResultsBtn');
-        const gradeInput = document.getElementById('grade');
+        const gradeSelect = document.getElementById('grade');
         const targetStrengthPreview = document.getElementById('targetStrengthPreview');
         const deleteSavedResultBtn = document.getElementById('deleteSavedResultBtn');
         const cementTypeSelect = document.getElementById('cementType');
         const useFlyAshCheckbox = document.getElementById('useFlyAsh');
         const waterCementRatioInput = document.getElementById('waterCementRatio');
         const waterCementRatioLabel = document.getElementById('waterCementRatioLabel');
-        const wcrRestrictionNote = document.getElementById('wcrRestrictionNote');
+        const wcrRestrictionInfo = document.getElementById('wcrRestrictionInfo');
         const useFlyAshLabel = document.getElementById('useFlyAshLabel');
         const flyAshRestrictionNote = document.getElementById('flyAshRestrictionNote');
         const adjustmentMessage = document.getElementById('adjustmentMessage');
+        const concreteTypeSelect = document.getElementById('concreteType');
+        const steelFiberSection = document.getElementById('steelFiberSection');
+        const useSteelFibersCheckbox = document.getElementById('useSteelFibers');
+        const steelFiberPercentageInput = document.getElementById('steelFiberPercentage');
+        const spGravitySteelFibersInput = document.getElementById('spGravitySteelFibers');
+        const adjustmentsSection = document.getElementById('adjustmentsSection');
+        const waterAdjustmentInput = document.getElementById('waterAdjustment');
+        const cementAdjustmentInput = document.getElementById('cementAdjustment');
+        const fineAggregateAdjustmentInput = document.getElementById('fineAggregateAdjustment');
+        const coarseAggregateAdjustmentInput = document.getElementById('coarseAggregateAdjustment');
+        const flyAshAdjustmentGroup = document.getElementById('flyAshAdjustmentGroup');
+        const flyAshAdjustmentInput = document.getElementById('flyAshAdjustment');
+        const gradeLabel = document.getElementById('gradeLabel');
+        const autoSwitchMessage = document.getElementById('autoSwitchMessage');
+        const steelFiberCalcSection = document.getElementById('steelFiberCalcSection');
 
         let materialChart;
         let savedMaterialChart;
@@ -1350,8 +1526,8 @@
             if (e.target === loginModal) loginModal.style.display = 'none';
         });
 
-        // Event listener for grade input to show target strength preview
-        gradeInput.addEventListener('input', updateTargetStrengthPreview);
+        // Event listener for grade selection to show target strength preview
+        gradeSelect.addEventListener('change', updateTargetStrengthPreview);
 
         // Event listener for cement type change
         cementTypeSelect.addEventListener('change', handleCementTypeChange);
@@ -1361,6 +1537,18 @@
         document.querySelectorAll('input[name="concreteType"]').forEach(radio => {
             radio.addEventListener('change', handleExposureChange);
         });
+
+        // Event listener for concrete type selection
+        concreteTypeSelect.addEventListener('change', handleConcreteTypeChange);
+
+        // Event listener for steel fibers checkbox
+        useSteelFibersCheckbox.addEventListener('change', handleSteelFibersChange);
+
+        // Event listener for fly ash checkbox
+        useFlyAshCheckbox.addEventListener('change', handleFlyAshChange);
+
+        // Event listener for admixture checkbox
+        document.getElementById('useAdmixture').addEventListener('change', handleAdmixtureChange);
 
         // Registration Form Submission
         registerForm.addEventListener('submit', (e) => {
@@ -1525,25 +1713,29 @@
 
         // Update target strength preview when grade changes
         function updateTargetStrengthPreview() {
-            const gradeInputValue = gradeInput.value.toUpperCase();
+            const gradeValue = parseInt(gradeSelect.value);
             
-            // Extract numeric value from grade input (accepts both "M30" and "30")
-            let gradeValue;
-            if (gradeInputValue.startsWith('M')) {
-                gradeValue = parseInt(gradeInputValue.substring(1));
+            // Automatically set concrete type based on grade
+            let concreteType;
+            if (gradeValue <= 50) {
+                concreteType = 'conventional';
             } else {
-                gradeValue = parseInt(gradeInputValue);
+                concreteType = 'highStrength';
             }
             
-            // Validate grade input - restrict to maximum 80
-            if (isNaN(gradeValue) || gradeValue < 10 || gradeValue > 80) {
-                targetStrengthPreview.style.display = 'none';
-                if (gradeValue > 80) {
-                    showMessage("Maximum allowed grade is M80. Please enter a grade between M10 and M80.", "error");
-                    gradeInput.value = "M80";
-                    gradeValue = 80;
-                }
-                return;
+            // Update concrete type dropdown if different
+            if (concreteTypeSelect.value !== concreteType) {
+                concreteTypeSelect.value = concreteType;
+                handleConcreteTypeChange();
+                
+                // Show auto-switch message
+                autoSwitchMessage.innerHTML = `<strong>Auto-switch applied:</strong> Concrete type changed to ${concreteType === 'highStrength' ? 'High Strength Concrete' : 'Conventional Concrete'} based on grade M${gradeValue}.`;
+                autoSwitchMessage.style.display = 'block';
+                
+                // Hide the message after 5 seconds
+                setTimeout(() => {
+                    autoSwitchMessage.style.display = 'none';
+                }, 5000);
             }
             
             // Calculate target strength
@@ -1561,6 +1753,9 @@
             targetStrengthPreview.innerHTML = `
                 Target Mean Strength: ${targetStrength.toFixed(2)} N/mm²
             `;
+            
+            // Update WCR restrictions based on exposure
+            updateWCRRestrictions();
         }
 
         // Handle cement type change
@@ -1590,13 +1785,18 @@
 
         // Handle exposure condition change
         function handleExposureChange() {
+            updateWCRRestrictions();
+            
+            // Update highlight for exposure table
+            highlightExposureCells();
+        }
+
+        // Update WCR restrictions based on exposure conditions
+        function updateWCRRestrictions() {
             const exposure = document.getElementById('exposure').value;
             const concreteType = getConcreteType();
             const expReq = exposureRequirements[exposure][concreteType];
             const maxWCR = expReq.maxWCR;
-            const minGrade = expReq.minGrade;
-            
-            let adjustmentMessages = [];
             
             // Update water-cement ratio input restrictions
             waterCementRatioInput.max = maxWCR;
@@ -1609,67 +1809,133 @@
                 setTimeout(() => {
                     waterCementRatioInput.classList.remove('auto-adjusted');
                 }, 2000);
-                adjustmentMessages.push(`Water-cement ratio adjusted to ${maxWCR} (maximum allowed for ${exposure} exposure)`);
-            }
-            
-            // Check if current grade meets the minimum requirement and adjust if necessary
-            if (minGrade) {
-                const minGradeValue = parseInt(minGrade.substring(1)); // Extract numeric value from "M20"
-                const currentGradeValue = getCurrentGradeValue();
                 
-                if (currentGradeValue < minGradeValue) {
-                    gradeInput.value = minGrade;
-                    gradeInput.classList.add('auto-adjusted');
-                    setTimeout(() => {
-                        gradeInput.classList.remove('auto-adjusted');
-                    }, 2000);
-                    adjustmentMessages.push(`Concrete grade adjusted to ${minGrade} (minimum required for ${exposure} exposure)`);
-                    updateTargetStrengthPreview();
-                }
-            }
-            
-            // Add restriction styling if needed
-            if (maxWCR < 0.7) {
-                waterCementRatioLabel.classList.add('restricted-label');
-                wcrRestrictionNote.textContent = `Maximum allowed W/C ratio for ${exposure} exposure is ${maxWCR}`;
-                wcrRestrictionNote.style.display = 'block';
-            } else {
-                waterCementRatioLabel.classList.remove('restricted-label');
-                wcrRestrictionNote.style.display = 'none';
-            }
-            
-            // Show adjustment message if any adjustments were made
-            if (adjustmentMessages.length > 0) {
-                adjustmentMessage.innerHTML = '<strong>Auto-adjustments applied:</strong><br>' + adjustmentMessages.join('<br>');
+                // Show adjustment message
+                adjustmentMessage.innerHTML = `<strong>Auto-adjustment applied:</strong> Water-cement ratio adjusted to ${maxWCR} (maximum allowed for ${exposure} exposure)`;
                 adjustmentMessage.style.display = 'block';
                 
                 // Hide the message after 5 seconds
                 setTimeout(() => {
                     adjustmentMessage.style.display = 'none';
                 }, 5000);
-            } else {
-                adjustmentMessage.style.display = 'none';
             }
             
-            // Update highlight for exposure table
-            highlightExposureCells();
+            // Update WCR restriction info
+            wcrRestrictionInfo.innerHTML = `
+                <p><strong>Maximum allowed W/C ratio for ${exposure} exposure: ${maxWCR}</strong></p>
+                <p>Concrete type: ${concreteType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
+            `;
+            wcrRestrictionInfo.style.display = 'block';
         }
 
         // Get current grade value as a number
         function getCurrentGradeValue() {
-            const gradeInputValue = gradeInput.value.toUpperCase();
-            let gradeValue;
-            if (gradeInputValue.startsWith('M')) {
-                gradeValue = parseInt(gradeInputValue.substring(1));
+            return parseInt(gradeSelect.value);
+        }
+
+        // Handle concrete type change
+        function handleConcreteTypeChange() {
+            const isHighStrength = concreteTypeSelect.value === 'highStrength';
+            
+            if (isHighStrength) {
+                // Show steel fiber section
+                steelFiberSection.classList.remove('hidden-section');
+                
+                // Update grade selection if needed
+                const currentGrade = getCurrentGradeValue();
+                if (currentGrade <= 50) {
+                    gradeSelect.value = '55';
+                    updateTargetStrengthPreview();
+                }
             } else {
-                gradeValue = parseInt(gradeInputValue);
+                // Hide steel fiber section and adjustments
+                steelFiberSection.classList.add('hidden-section');
+                adjustmentsSection.classList.add('hidden-section');
+                
+                // Reset steel fibers checkbox
+                useSteelFibersCheckbox.checked = false;
+                steelFiberPercentageInput.disabled = true;
+                spGravitySteelFibersInput.disabled = true;
+                
+                // Update grade selection if needed
+                const currentGrade = getCurrentGradeValue();
+                if (currentGrade > 50) {
+                    gradeSelect.value = '50';
+                    updateTargetStrengthPreview();
+                }
             }
-            return isNaN(gradeValue) ? 0 : gradeValue;
+            
+            // Update WCR restrictions
+            updateWCRRestrictions();
+        }
+
+        // Handle steel fibers change
+        function handleSteelFibersChange() {
+            const useSteelFibers = useSteelFibersCheckbox.checked;
+            
+            if (useSteelFibers) {
+                // Enable steel fiber inputs
+                steelFiberPercentageInput.disabled = false;
+                spGravitySteelFibersInput.disabled = false;
+                
+                // Show adjustments section
+                adjustmentsSection.classList.remove('hidden-section');
+                
+                // Update water adjustment based on admixture
+                handleAdmixtureChange();
+                
+                // Update fly ash adjustment based on fly ash selection
+                handleFlyAshChange();
+            } else {
+                // Disable steel fiber inputs
+                steelFiberPercentageInput.disabled = true;
+                spGravitySteelFibersInput.disabled = true;
+                
+                // Hide adjustments section
+                adjustmentsSection.classList.add('hidden-section');
+                
+                // Reset adjustment values
+                waterAdjustmentInput.value = 0;
+                cementAdjustmentInput.value = 0;
+                fineAggregateAdjustmentInput.value = 0;
+                coarseAggregateAdjustmentInput.value = 0;
+                flyAshAdjustmentInput.value = 0;
+            }
+        }
+
+        // Handle fly ash change
+        function handleFlyAshChange() {
+            const useFlyAsh = useFlyAshCheckbox.checked;
+            
+            if (useFlyAsh && useSteelFibersCheckbox.checked) {
+                // Show fly ash adjustment
+                flyAshAdjustmentGroup.classList.remove('hidden-section');
+            } else {
+                // Hide fly ash adjustment
+                flyAshAdjustmentGroup.classList.add('hidden-section');
+                flyAshAdjustmentInput.value = 0;
+            }
+        }
+
+        // Handle admixture change
+        function handleAdmixtureChange() {
+            const useAdmixture = document.getElementById('useAdmixture').checked;
+            
+            if (useAdmixture && useSteelFibersCheckbox.checked) {
+                // Disable water adjustment if admixture is used
+                waterAdjustmentInput.disabled = true;
+                waterAdjustmentInput.value = 0;
+                waterAdjustmentInput.title = "Water adjustment is disabled when admixture is used";
+            } else if (useSteelFibersCheckbox.checked) {
+                // Enable water adjustment if admixture is not used
+                waterAdjustmentInput.disabled = false;
+                waterAdjustmentInput.title = "";
+            }
         }
 
         function calculateMix() {
             // Get input values
-            const gradeInputValue = document.getElementById('grade').value.toUpperCase();
+            const gradeValue = parseInt(gradeSelect.value);
             const aggSize = document.getElementById('aggSize').value;
             const zone = document.getElementById('zone').value;
             const slump = parseFloat(document.getElementById('slump').value);
@@ -1687,27 +1953,21 @@
             const spGravityAdmixture = useAdmixture ? parseFloat(document.getElementById('spGravityAdmixture').value) : 0;
             const waterReduction = useAdmixture ? parseFloat(document.getElementById('waterReduction').value) : 0;
             const selectedWCR = parseFloat(document.getElementById('waterCementRatio').value);
+            const useSteelFibers = document.getElementById('useSteelFibers').checked;
+            const steelFiberPercentage = useSteelFibers ? parseFloat(document.getElementById('steelFiberPercentage').value) : 0;
+            const spGravitySteelFibers = useSteelFibers ? parseFloat(document.getElementById('spGravitySteelFibers').value) : 7.85;
+            const waterAdjustment = useSteelFibers ? parseFloat(document.getElementById('waterAdjustment').value) : 0;
+            const cementAdjustment = useSteelFibers ? parseFloat(document.getElementById('cementAdjustment').value) : 0;
+            const fineAggregateAdjustment = useSteelFibers ? parseFloat(document.getElementById('fineAggregateAdjustment').value) : 0;
+            const coarseAggregateAdjustment = useSteelFibers ? parseFloat(document.getElementById('coarseAggregateAdjustment').value) : 0;
+            const flyAshAdjustment = (useSteelFibers && useFlyAsh) ? parseFloat(document.getElementById('flyAshAdjustment').value) : 0;
 
-            // Extract numeric value from grade input (accepts both "M30" and "30")
-            let gradeValue;
-            if (gradeInputValue.startsWith('M')) {
-                gradeValue = parseInt(gradeInputValue.substring(1));
-            } else {
-                gradeValue = parseInt(gradeInputValue);
-            }
+            // Format grade for display (M30)
+            const formattedGrade = `M${gradeValue}`;
             
-            // Format grade for display (M30/30)
-            const formattedGrade = `M${gradeValue}/${gradeValue}`;
-            
-            // Validate grade input - restrict to maximum 80
-            if (isNaN(gradeValue) || gradeValue < 10 || gradeValue > 80) {
-                showMessage("Please enter a valid concrete grade between 10 and 80 (e.g., M30, 30, M40, 40)", "error");
-                return;
-            }
-
             // Validate water-cement ratio against exposure requirements
-            const concreteType = getConcreteType();
-            const maxAllowedWCR = exposureRequirements[exposure][concreteType].maxWCR;
+            const concreteStructureType = getConcreteType();
+            const maxAllowedWCR = exposureRequirements[exposure][concreteStructureType].maxWCR;
             if (selectedWCR > maxAllowedWCR) {
                 showMessage(`Water-cement ratio (${selectedWCR}) exceeds maximum allowed (${maxAllowedWCR}) for ${exposure} exposure condition.`, "error");
                 return;
@@ -1749,7 +2009,7 @@
             highlightExposureCells();
 
             // Get exposure requirements based on concrete type
-            const expReq = exposureRequirements[exposure][concreteType];
+            const expReq = exposureRequirements[exposure][concreteStructureType];
 
             // Calculate air content
             const airContent = aggSize === "10" ? 1.5 : (aggSize === "20" ? 1.0 : 0.8);
@@ -1832,7 +2092,7 @@
             
             document.getElementById('exposureCheck').innerHTML = `
                 <p>Exposure condition: ${exposure.charAt(0).toUpperCase() + exposure.slice(1)}</p>
-                <p>Concrete type: ${concreteType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
+                <p>Concrete type: ${concreteStructureType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
                 <p>Minimum cement content required: ${expReq.minCement} kg/m³</p>
                 <p>Maximum water-cement ratio allowed: ${expReq.maxWCR}</p>
                 <p>Minimum grade required: ${expReq.minGrade || '--'}</p>
@@ -1873,10 +2133,59 @@
             const admixtureDosage = useAdmixture ? cementitiousContent * (admixturePercentage / 100) : 0;
             const volumeAdmixture = useAdmixture ? admixtureDosage / (spGravityAdmixture * 1000) : 0;
             
-            const volumeAllAggregate = 1 - volumeAir - volumeCement - volumeFlyAsh - volumeWater - volumeAdmixture;
+            // Calculate steel fiber volume and mass if used
+            const steelFiberVolume = useSteelFibers ? steelFiberPercentage / 100 : 0;
+            const steelFiberMass = useSteelFibers ? steelFiberVolume * spGravitySteelFibers * 1000 : 0;
+            
+            // Show steel fiber calculation if used
+            if (useSteelFibers) {
+                steelFiberCalcSection.classList.remove('hidden-section');
+                document.getElementById('steelFiberCalc').innerHTML = `
+                    <p>Steel Fiber Percentage: ${steelFiberPercentage}%</p>
+                    <p>Specific Gravity of Steel Fibers: ${spGravitySteelFibers}</p>
+                    <p>Volume of Steel Fibers = ${steelFiberPercentage}% = ${steelFiberVolume.toFixed(4)} m³</p>
+                    <p>Mass of Steel Fibers = Volume × Specific Gravity × 1000</p>
+                    <p>= ${steelFiberVolume.toFixed(4)} × ${spGravitySteelFibers} × 1000</p>
+                    <p>= <span class="highlight">${steelFiberMass.toFixed(2)} kg</span></p>
+                `;
+            } else {
+                steelFiberCalcSection.classList.add('hidden-section');
+            }
+            
+            const volumeAllAggregate = 1 - volumeAir - volumeCement - volumeFlyAsh - volumeWater - volumeAdmixture - steelFiberVolume;
             
             const massCA = volumeAllAggregate * adjustedCAVolume * spGravityCA * 1000;
             const massFA = volumeAllAggregate * faVolume * spGravityFA * 1000;
+            
+            // Apply adjustments for high strength concrete with steel fibers
+            let adjustedWater = adjustedWaterContent;
+            let adjustedCement = cementContentAdjusted;
+            let adjustedFlyAsh = flyAshContent;
+            let adjustedFA = massFA;
+            let adjustedCA = massCA;
+            
+            if (useSteelFibers) {
+                // Apply adjustments
+                adjustedWater += adjustedWater * (waterAdjustment / 100);
+                adjustedCement += adjustedCement * (cementAdjustment / 100);
+                adjustedFA -= adjustedFA * (fineAggregateAdjustment / 100);
+                adjustedCA -= adjustedCA * (coarseAggregateAdjustment / 100);
+                
+                if (useFlyAsh) {
+                    adjustedFlyAsh -= adjustedFlyAsh * (flyAshAdjustment / 100);
+                }
+                
+                // Recalculate volumes with adjustments
+                const adjustedVolumeCement = adjustedCement / (spGravityCement * 1000);
+                const adjustedVolumeFlyAsh = useFlyAsh ? adjustedFlyAsh / (spGravityFlyAsh * 1000) : 0;
+                const adjustedVolumeWater = adjustedWater / 1000;
+                
+                // Recalculate aggregate volumes to maintain total volume of 1 m³
+                const adjustedVolumeAllAggregate = 1 - volumeAir - adjustedVolumeCement - adjustedVolumeFlyAsh - adjustedVolumeWater - volumeAdmixture - steelFiberVolume;
+                
+                adjustedFA = adjustedVolumeAllAggregate * faVolume * spGravityFA * 1000;
+                adjustedCA = adjustedVolumeAllAggregate * adjustedCAVolume * spGravityCA * 1000;
+            }
             
             document.getElementById('mixCalculations').innerHTML = `
                 <p>a) Total volume = 1 m³</p>
@@ -1885,32 +2194,46 @@
                 ${useFlyAsh ? `<p>d) Volume of fly ash = ${flyAshContent.toFixed(2)} / (${spGravityFlyAsh} × 1000) = ${volumeFlyAsh.toFixed(4)} m³</p>` : ''}
                 <p>${useFlyAsh ? 'e' : 'd'}) Volume of water = ${adjustedWaterContent.toFixed(2)} / 1000 = ${volumeWater.toFixed(4)} m³</p>
                 ${useAdmixture ? `<p>${useFlyAsh ? 'f' : 'e'}) Volume of admixture = ${admixtureDosage.toFixed(2)} / (${spGravityAdmixture} × 1000) = ${volumeAdmixture.toFixed(4)} m³</p>` : ''}
-                <p>${useFlyAsh && useAdmixture ? 'g' : (useFlyAsh || useAdmixture) ? 'f' : 'e'}) Volume of all aggregate = [1 - ${volumeAir.toFixed(3)} - ${volumeCement.toFixed(4)}${useFlyAsh ? ` - ${volumeFlyAsh.toFixed(4)}` : ''} - ${volumeWater.toFixed(4)}${useAdmixture ? ` - ${volumeAdmixture.toFixed(4)}` : ''}] = ${volumeAllAggregate.toFixed(4)} m³</p>
-                <p>${useFlyAsh && useAdmixture ? 'h' : (useFlyAsh || useAdmixture) ? 'g' : 'f'}) Mass of coarse aggregate = ${volumeAllAggregate.toFixed(4)} × ${adjustedCAVolume.toFixed(3)} × ${spGravityCA} × 1000 = <span class="highlight">${massCA.toFixed(2)} kg</span></p>
-                <p>${useFlyAsh && useAdmixture ? 'i' : (useFlyAsh || useAdmixture) ? 'h' : 'g'}) Mass of fine aggregate = ${volumeAllAggregate.toFixed(4)} × ${faVolume.toFixed(3)} × ${spGravityFA} × 1000 = <span class="highlight">${massFA.toFixed(2)} kg</span></p>
+                ${useSteelFibers ? `<p>${useFlyAsh && useAdmixture ? 'g' : (useFlyAsh || useAdmixture) ? 'f' : 'e'}) Volume of steel fibers = ${steelFiberPercentage}% = ${steelFiberVolume.toFixed(4)} m³</p>` : ''}
+                <p>${useSteelFibers ? (useFlyAsh && useAdmixture ? 'h' : (useFlyAsh || useAdmixture) ? 'g' : 'f') : (useFlyAsh && useAdmixture ? 'g' : (useFlyAsh || useAdmixture) ? 'f' : 'e')}) Volume of all aggregate = [1 - ${volumeAir.toFixed(3)} - ${volumeCement.toFixed(4)}${useFlyAsh ? ` - ${volumeFlyAsh.toFixed(4)}` : ''} - ${volumeWater.toFixed(4)}${useAdmixture ? ` - ${volumeAdmixture.toFixed(4)}` : ''}${useSteelFibers ? ` - ${steelFiberVolume.toFixed(4)}` : ''}] = ${volumeAllAggregate.toFixed(4)} m³</p>
+                <p>${useSteelFibers ? (useFlyAsh && useAdmixture ? 'i' : (useFlyAsh || useAdmixture) ? 'h' : 'g') : (useFlyAsh && useAdmixture ? 'h' : (useFlyAsh || useAdmixture) ? 'g' : 'f')}) Mass of coarse aggregate = ${volumeAllAggregate.toFixed(4)} × ${adjustedCAVolume.toFixed(3)} × ${spGravityCA} × 1000 = <span class="highlight">${massCA.toFixed(2)} kg</span></p>
+                <p>${useSteelFibers ? (useFlyAsh && useAdmixture ? 'j' : (useFlyAsh || useAdmixture) ? 'i' : 'h') : (useFlyAsh && useAdmixture ? 'i' : (useFlyAsh || useAdmixture) ? 'h' : 'g')}) Mass of fine aggregate = ${volumeAllAggregate.toFixed(4)} × ${faVolume.toFixed(3)} × ${spGravityFA} × 1000 = <span class="highlight">${massFA.toFixed(2)} kg</span></p>
+                ${useSteelFibers ? `
+                <div class="adjustment-message">
+                    <p><strong>Adjustments applied for high strength concrete with steel fibers:</strong></p>
+                    <p>Water: +${waterAdjustment}% (${adjustedWater.toFixed(2)} kg)</p>
+                    <p>Cement: +${cementAdjustment}% (${adjustedCement.toFixed(2)} kg)</p>
+                    <p>Fine Aggregate: -${fineAggregateAdjustment}% (${adjustedFA.toFixed(2)} kg)</p>
+                    <p>Coarse Aggregate: -${coarseAggregateAdjustment}% (${adjustedCA.toFixed(2)} kg)</p>
+                    ${useFlyAsh ? `<p>Fly Ash: -${flyAshAdjustment}% (${adjustedFlyAsh.toFixed(2)} kg)</p>` : ''}
+                </div>
+                ` : ''}
             `;
 
             // Calculate adjustments for dry aggregates
-            const massFADry = massFA / (1 + absorptionFA/100);
-            const massCADry = massCA / (1 + absorptionCA/100);
+            const massFADry = adjustedFA / (1 + absorptionFA/100);
+            const massCADry = adjustedCA / (1 + absorptionCA/100);
             
-            const extraWaterFA = massFA - massFADry;
-            const extraWaterCA = massCA - massCADry;
+            const extraWaterFA = adjustedFA - massFADry;
+            const extraWaterCA = adjustedCA - massCADry;
             const totalExtraWater = extraWaterFA + extraWaterCA;
             
             // Store current result for saving
             currentResult = {
                 id: Date.now(), // Unique ID for the result
                 grade: formattedGrade,
+                concreteType: concreteTypeSelect.value,
                 timestamp: new Date().toLocaleString(),
-                cement: cementContentAdjusted,
-                flyAsh: flyAshContent,
-                water: adjustedWaterContent,
-                fineAggregate: massFA,
-                coarseAggregate: massCA,
+                cement: adjustedCement,
+                flyAsh: adjustedFlyAsh,
+                water: adjustedWater,
+                fineAggregate: adjustedFA,
+                coarseAggregate: adjustedCA,
                 admixture: admixtureDosage,
+                steelFibers: useSteelFibers ? steelFiberMass : 0,
                 useFlyAsh: useFlyAsh,
                 useAdmixture: useAdmixture,
+                useSteelFibers: useSteelFibers,
                 targetStrength: targetStrength.toFixed(2),
                 wcr: selectedWCR.toFixed(3)
             };
@@ -1926,36 +2249,43 @@
                     </tr>
                     <tr>
                         <td>Cement</td>
-                        <td>${cementContentAdjusted.toFixed(2)}</td>
+                        <td>${adjustedCement.toFixed(2)}</td>
                         <td>1</td>
                     </tr>
                     ${useFlyAsh ? `
                     <tr>
                         <td>Fly Ash</td>
-                        <td>${flyAshContent.toFixed(2)}</td>
-                        <td>${(flyAshContent / cementContentAdjusted).toFixed(3)}</td>
+                        <td>${adjustedFlyAsh.toFixed(2)}</td>
+                        <td>${(adjustedFlyAsh / adjustedCement).toFixed(3)}</td>
                     </tr>
                     ` : ''}
                     <tr>
                         <td>Water</td>
-                        <td>${adjustedWaterContent.toFixed(2)}</td>
-                        <td>${(adjustedWaterContent / cementContentAdjusted).toFixed(3)}</td>
+                        <td>${adjustedWater.toFixed(2)}</td>
+                        <td>${(adjustedWater / adjustedCement).toFixed(3)}</td>
                     </tr>
                     <tr>
                         <td>Fine Aggregate</td>
-                        <td>${massFA.toFixed(2)}</td>
-                        <td>${(massFA / cementContentAdjusted).toFixed(3)}</td>
+                        <td>${adjustedFA.toFixed(2)}</td>
+                        <td>${(adjustedFA / adjustedCement).toFixed(3)}</td>
                     </tr>
                     <tr>
                         <td>Coarse Aggregate</td>
-                        <td>${massCA.toFixed(2)}</td>
-                        <td>${(massCA / cementContentAdjusted).toFixed(3)}</td>
+                        <td>${adjustedCA.toFixed(2)}</td>
+                        <td>${(adjustedCA / adjustedCement).toFixed(3)}</td>
                     </tr>
                     ${useAdmixture ? `
                     <tr>
                         <td>Admixture</td>
                         <td>${admixtureDosage.toFixed(2)}</td>
-                        <td>${(admixtureDosage / cementContentAdjusted).toFixed(3)}</td>
+                        <td>${(admixtureDosage / adjustedCement).toFixed(3)}</td>
+                    </tr>
+                    ` : ''}
+                    ${useSteelFibers ? `
+                    <tr>
+                        <td>Steel Fibers</td>
+                        <td>${steelFiberMass.toFixed(2)}</td>
+                        <td>${(steelFiberMass / adjustedCement).toFixed(3)}</td>
                     </tr>
                     ` : ''}
                 </table>
@@ -1968,17 +2298,18 @@
                     <li>Extra water to be added = ${totalExtraWater.toFixed(2)} kg</li>
                 </ul>
                 
-                <p><strong>Final Water Content (with dry aggregates) = ${(adjustedWaterContent + totalExtraWater).toFixed(2)} kg</strong></p>
+                <p><strong>Final Water Content (with dry aggregates) = ${(adjustedWater + totalExtraWater).toFixed(2)} kg</strong></p>
             `;
 
             // Create material quantities pie chart
             createMaterialChart(
-                cementContentAdjusted,
-                flyAshContent,
-                adjustedWaterContent,
-                massFA,
-                massCA,
-                admixtureDosage
+                adjustedCement,
+                adjustedFlyAsh,
+                adjustedWater,
+                adjustedFA,
+                adjustedCA,
+                admixtureDosage,
+                useSteelFibers ? steelFiberMass : 0
             );
 
             // Show results section
@@ -1988,7 +2319,7 @@
             document.getElementById('messageArea').innerHTML = '';
         }
 
-        function createMaterialChart(cement, flyAsh, water, fineAgg, coarseAgg, admixture) {
+        function createMaterialChart(cement, flyAsh, water, fineAgg, coarseAgg, admixture, steelFibers = 0) {
             const ctx = document.getElementById('materialChart').getContext('2d');
             
             // Destroy previous chart if exists
@@ -2003,7 +2334,8 @@
                 { name: 'Water', value: water, color: 'rgb(75, 192, 192)' },
                 { name: 'Fine Aggregate', value: fineAgg, color: 'rgb(255, 159, 64)' },
                 { name: 'Coarse Aggregate', value: coarseAgg, color: 'rgb(255, 99, 132)' },
-                { name: 'Admixture', value: admixture, color: 'rgb(201, 203, 207)' }
+                { name: 'Admixture', value: admixture, color: 'rgb(201, 203, 207)' },
+                { name: 'Steel Fibers', value: steelFibers, color: 'rgb(128, 128, 128)' }
             ];
             
             // Filter out materials with zero value
@@ -2251,7 +2583,7 @@
             savedResultsBody.innerHTML = '';
             
             if (!currentUser || currentUser.results.length === 0) {
-                savedResultsBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No saved results found.</td></tr>';
+                savedResultsBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No saved results found.</td></tr>';
                 return;
             }
             
@@ -2261,6 +2593,7 @@
                 row.innerHTML = `
                     <td>${index + 1}</td>
                     <td>${result.grade}</td>
+                    <td>${result.concreteType === 'highStrength' ? 'High Strength' : 'Conventional'}</td>
                     <td>${result.timestamp}</td>
                     <td>${result.wcr}</td>
                     <td>
@@ -2335,11 +2668,22 @@
                 `;
             }
             
+            if (result.useSteelFibers) {
+                materialsTable += `
+                    <tr>
+                        <td>Steel Fibers</td>
+                        <td>${result.steelFibers.toFixed(2)}</td>
+                        <td>${(result.steelFibers / result.cement).toFixed(3)}</td>
+                    </tr>
+                `;
+            }
+            
             materialsTable += '</table>';
             
             content.innerHTML = `
                 <div class="result-box">
                     <h3>Grade: ${result.grade}</h3>
+                    <p>Type: ${result.concreteType === 'highStrength' ? 'High Strength Concrete' : 'Conventional Concrete'}</p>
                     <p>Target Strength: ${result.targetStrength} N/mm²</p>
                     <p>Water-Cement Ratio: ${result.wcr}</p>
                     <p>Saved on: ${result.timestamp}</p>
@@ -2357,7 +2701,8 @@
                 result.water,
                 result.fineAggregate,
                 result.coarseAggregate,
-                result.admixture
+                result.admixture,
+                result.steelFibers
             );
             
             savedResultsSection.style.display = 'none';
@@ -2367,7 +2712,7 @@
             displaySection.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function createSavedMaterialChart(cement, flyAsh, water, fineAgg, coarseAgg, admixture) {
+        function createSavedMaterialChart(cement, flyAsh, water, fineAgg, coarseAgg, admixture, steelFibers = 0) {
             const ctx = document.getElementById('savedMaterialChart').getContext('2d');
             
             // Destroy previous chart if exists
@@ -2382,7 +2727,8 @@
                 { name: 'Water', value: water, color: 'rgb(75, 192, 192)' },
                 { name: 'Fine Aggregate', value: fineAgg, color: 'rgb(255, 159, 64)' },
                 { name: 'Coarse Aggregate', value: coarseAgg, color: 'rgb(255, 99, 132)' },
-                { name: 'Admixture', value: admixture, color: 'rgb(201, 203, 207)' }
+                { name: 'Admixture', value: admixture, color: 'rgb(201, 203, 207)' },
+                { name: 'Steel Fibers', value: steelFibers, color: 'rgb(128, 128, 128)' }
             ];
             
             // Filter out materials with zero value
@@ -2503,6 +2849,7 @@
             updateTargetStrengthPreview();
             handleCementTypeChange();
             handleExposureChange();
+            handleConcreteTypeChange();
         };
     </script>
 </body>

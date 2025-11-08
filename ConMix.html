@@ -746,6 +746,15 @@
             border-radius: 4px;
             font-size: 14px;
         }
+        
+        .warning-message {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -1797,33 +1806,21 @@
             const concreteType = getConcreteType();
             const expReq = exposureRequirements[exposure][concreteType];
             const maxWCR = expReq.maxWCR;
-            
-            // Update water-cement ratio input restrictions
-            waterCementRatioInput.max = maxWCR;
-            
-            // Check if current water-cement ratio exceeds the max and adjust if necessary
             const currentWCR = parseFloat(waterCementRatioInput.value);
-            if (currentWCR > maxWCR) {
-                waterCementRatioInput.value = maxWCR;
-                waterCementRatioInput.classList.add('auto-adjusted');
-                setTimeout(() => {
-                    waterCementRatioInput.classList.remove('auto-adjusted');
-                }, 2000);
-                
-                // Show adjustment message
-                adjustmentMessage.innerHTML = `<strong>Auto-adjustment applied:</strong> Water-cement ratio adjusted to ${maxWCR} (maximum allowed for ${exposure} exposure)`;
-                adjustmentMessage.style.display = 'block';
-                
-                // Hide the message after 5 seconds
-                setTimeout(() => {
-                    adjustmentMessage.style.display = 'none';
-                }, 5000);
-            }
             
             // Update WCR restriction info
+            let warningHTML = '';
+            if (currentWCR > maxWCR) {
+                warningHTML = `<div class="warning-message">
+                    <p><strong>Warning:</strong> The entered water-cement ratio (${currentWCR}) exceeds the maximum recommended (${maxWCR}) for ${exposure} exposure condition.</p>
+                    <p>This may affect the durability of the concrete. Consider using a lower water-cement ratio.</p>
+                </div>`;
+            }
+            
             wcrRestrictionInfo.innerHTML = `
-                <p><strong>Maximum allowed W/C ratio for ${exposure} exposure: ${maxWCR}</strong></p>
+                <p><strong>Recommended maximum W/C ratio for ${exposure} exposure: ${maxWCR}</strong></p>
                 <p>Concrete type: ${concreteType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
+                ${warningHTML}
             `;
             wcrRestrictionInfo.style.display = 'block';
         }
@@ -1965,20 +1962,11 @@
             // Format grade for display (M30)
             const formattedGrade = `M${gradeValue}`;
             
-            // Validate water-cement ratio against exposure requirements
+            // Get exposure requirements for checking
             const concreteStructureType = getConcreteType();
-            const maxAllowedWCR = exposureRequirements[exposure][concreteStructureType].maxWCR;
-            if (selectedWCR > maxAllowedWCR) {
-                showMessage(`Water-cement ratio (${selectedWCR}) exceeds maximum allowed (${maxAllowedWCR}) for ${exposure} exposure condition.`, "error");
-                return;
-            }
-
-            // Validate water-cement ratio
-            if (isNaN(selectedWCR) || selectedWCR < 0.3 || selectedWCR > 0.7) {
-                showMessage("Please enter a valid water-cement ratio between 0.3 and 0.7", "error");
-                return;
-            }
-
+            const expReq = exposureRequirements[exposure][concreteStructureType];
+            const maxAllowedWCR = expReq.maxWCR;
+            
             // Calculate target strength
             const fck = gradeValue;
             const gradeKey = `M${gradeValue}`;
@@ -2007,9 +1995,6 @@
 
             // Highlight exposure cells
             highlightExposureCells();
-
-            // Get exposure requirements based on concrete type
-            const expReq = exposureRequirements[exposure][concreteStructureType];
 
             // Calculate air content
             const airContent = aggSize === "10" ? 1.5 : (aggSize === "20" ? 1.0 : 0.8);
@@ -2090,16 +2075,32 @@
                 adjustedWaterContent = cementitiousContent * selectedWCR;
             }
             
-            document.getElementById('exposureCheck').innerHTML = `
+            // Create exposure check message
+            let exposureCheckHTML = `
                 <p>Exposure condition: ${exposure.charAt(0).toUpperCase() + exposure.slice(1)}</p>
                 <p>Concrete type: ${concreteStructureType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
                 <p>Minimum cement content required: ${expReq.minCement} kg/m³</p>
-                <p>Maximum water-cement ratio allowed: ${expReq.maxWCR}</p>
+                <p>Maximum water-cement ratio recommended: ${expReq.maxWCR}</p>
                 <p>Minimum grade required: ${expReq.minGrade || '--'}</p>
-                ${cementContent < expReq.minCement ? 
-                    `<p class="highlight">Cement content increased to meet exposure requirement: ${cementContentAdjusted.toFixed(2)} kg/m³</p>` : 
-                    `<p>Calculated cement content meets exposure requirement</p>`}
             `;
+            
+            if (cementContent < expReq.minCement) {
+                exposureCheckHTML += `<p class="highlight">Cement content increased to meet exposure requirement: ${cementContentAdjusted.toFixed(2)} kg/m³</p>`;
+            } else {
+                exposureCheckHTML += `<p>Calculated cement content meets exposure requirement</p>`;
+            }
+            
+            // Add warning if W/C ratio exceeds maximum
+            if (selectedWCR > maxAllowedWCR) {
+                exposureCheckHTML += `
+                    <div class="warning-message">
+                        <p><strong>Warning:</strong> The entered water-cement ratio (${selectedWCR}) exceeds the maximum recommended (${maxAllowedWCR}) for ${exposure} exposure condition.</p>
+                        <p>This may affect the durability of the concrete. Consider using a lower water-cement ratio.</p>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('exposureCheck').innerHTML = exposureCheckHTML;
 
             // Calculate aggregate proportions
             const baseCAVolume = caVolume[aggSize][zone];
@@ -2235,7 +2236,9 @@
                 useAdmixture: useAdmixture,
                 useSteelFibers: useSteelFibers,
                 targetStrength: targetStrength.toFixed(2),
-                wcr: selectedWCR.toFixed(3)
+                wcr: selectedWCR.toFixed(3),
+                exposure: exposure,
+                concreteStructureType: concreteStructureType
             };
             
             // Display final proportions
@@ -2686,6 +2689,8 @@
                     <p>Type: ${result.concreteType === 'highStrength' ? 'High Strength Concrete' : 'Conventional Concrete'}</p>
                     <p>Target Strength: ${result.targetStrength} N/mm²</p>
                     <p>Water-Cement Ratio: ${result.wcr}</p>
+                    <p>Exposure Condition: ${result.exposure}</p>
+                    <p>Concrete Structure: ${result.concreteStructureType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
                     <p>Saved on: ${result.timestamp}</p>
                     ${materialsTable}
                 </div>

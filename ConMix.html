@@ -6,7 +6,6 @@
     <title>ConMix - Concrete Mix Design Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* All CSS styles remain exactly the same as in your file */
         * {
             font-family: "Times New Roman", serif;
             box-sizing: border-box;
@@ -1397,7 +1396,6 @@
     </div>
 
     <script>
-        // All JavaScript code from the previous conversation is integrated here
         // Standard deviation values - Extended for high strength concrete
         const stdDeviation = {
             "M10": 3.5, "M15": 3.5,
@@ -1904,6 +1902,10 @@
         // Handle fly ash change
         function handleFlyAshChange() {
             const useFlyAsh = useFlyAshCheckbox.checked;
+            
+            // Update fly ash inputs enabled state
+            document.getElementById('flyAshPercentage').disabled = !useFlyAsh;
+            document.getElementById('spGravityFlyAsh').disabled = !useFlyAsh;
             
             if (useFlyAsh && useSteelFibersCheckbox.checked) {
                 // Show fly ash adjustment

@@ -6,6 +6,7 @@
     <title>ConMix - Concrete Mix Design Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* All CSS styles remain the same as in the original file */
         * {
             font-family: "Times New Roman", serif;
             box-sizing: border-box;
@@ -659,7 +660,41 @@
             100% { background-color: #ffcccc; }
         }
         
-        /* Rest of the CSS remains the same */
+        .restricted-input {
+            background-color: #ffe6e6;
+            border-color: #ff9999;
+        }
+        
+        .restricted-label {
+            color: #cc0000;
+        }
+        
+        .restricted-note {
+            color: #cc0000;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .auto-adjusted {
+            background-color: #e6ffe6 !important;
+            border-color: #66cc66 !important;
+            animation: pulse 1s;
+        }
+        
+        @keyframes pulse {
+            0% { background-color: #e6ffe6; }
+            50% { background-color: #b3ffb3; }
+            100% { background-color: #e6ffe6; }
+        }
+        
+        .adjustment-message {
+            background-color: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -701,10 +736,13 @@
         <!-- Material Properties Input Section -->
         <div class="section">
             <h2>Material Properties Input</h2>
+            <div id="adjustmentMessage" class="adjustment-message" style="display: none;">
+                <!-- Auto-adjustment messages will appear here -->
+            </div>
             <div class="input-grid">
                 <div class="input-group">
                     <label for="grade">Grade of Concrete (e.g., M30 or 30)</label>
-                    <input type="text" id="grade" placeholder="e.g., M30, 30, M40, 40" value="M30">
+                    <input type="text" id="grade" placeholder="e.g., M30, 30, M40, 40 (Max: M80)" value="M30">
                     <div id="targetStrengthPreview" class="target-strength-preview">
                         <!-- Target strength preview will appear here -->
                     </div>
@@ -713,9 +751,8 @@
                 <div class="input-group">
                     <label for="cementType">Cement Type</label>
                     <select id="cementType">
-                        <option value="33">33 Grade</option>
-                        <option value="43" selected>43 Grade or PPC</option>
-                        <option value="53">53 Grade</option>
+                        <option value="OPC">OPC</option>
+                        <option value="PPC">PPC</option>
                     </select>
                 </div>
                 
@@ -770,20 +807,22 @@
                 
                 <!-- Water-Cement Ratio Input -->
                 <div class="input-group">
-                    <label for="waterCementRatio">Water-Cement Ratio</label>
+                    <label for="waterCementRatio" id="waterCementRatioLabel">Water-Cement Ratio</label>
                     <input type="number" id="waterCementRatio" value="0.45" step="0.01" min="0.3" max="0.7">
                     <p style="font-size: 12px; color: #666; margin-top: 5px;">Enter the desired water-cement ratio (typically between 0.3 and 0.7)</p>
+                    <div id="wcrRestrictionNote" class="restricted-note" style="display: none;"></div>
                 </div>
             </div>
             
             <h3>Fly Ash Properties (Optional)</h3>
             <div class="input-grid">
                 <div class="input-group">
-                    <label for="useFlyAsh">Use Fly Ash</label>
+                    <label for="useFlyAsh" id="useFlyAshLabel">Use Fly Ash</label>
                     <div class="checkbox-group">
                         <input type="checkbox" id="useFlyAsh">
                         <label for="useFlyAsh">Yes</label>
                     </div>
+                    <div id="flyAshRestrictionNote" class="restricted-note" style="display: none;">Fly ash cannot be used with PPC cement</div>
                 </div>
                 
                 <div class="input-group">
@@ -1224,11 +1263,26 @@
 
         // Exposure requirements
         const exposureRequirements = {
-            "mild": { plain: { minCement: 220, maxWCR: 0.60, minGrade: "--" }, reinforced: { minCement: 300, maxWCR: 0.55, minGrade: "M20" } },
-            "moderate": { plain: { minCement: 240, maxWCR: 0.60, minGrade: "M15" }, reinforced: { minCement: 300, maxWCR: 0.50, minGrade: "M25" } },
-            "severe": { plain: { minCement: 250, maxWCR: 0.50, minGrade: "M20" }, reinforced: { minCement: 320, maxWCR: 0.45, minGrade: "M30" } },
-            "verySevere": { plain: { minCement: 260, maxWCR: 0.45, minGrade: "M20" }, reinforced: { minCement: 340, maxWCR: 0.45, minGrade: "M35" } },
-            "extreme": { plain: { minCement: 280, maxWCR: 0.40, minGrade: "M25" }, reinforced: { minCement: 360, maxWCR: 0.40, minGrade: "M25" } }
+            "mild": { 
+                plain: { minCement: 220, maxWCR: 0.60, minGrade: null }, 
+                reinforced: { minCement: 300, maxWCR: 0.55, minGrade: "M20" } 
+            },
+            "moderate": { 
+                plain: { minCement: 240, maxWCR: 0.60, minGrade: "M15" }, 
+                reinforced: { minCement: 300, maxWCR: 0.50, minGrade: "M25" } 
+            },
+            "severe": { 
+                plain: { minCement: 250, maxWCR: 0.50, minGrade: "M20" }, 
+                reinforced: { minCement: 320, maxWCR: 0.45, minGrade: "M30" } 
+            },
+            "verySevere": { 
+                plain: { minCement: 260, maxWCR: 0.45, minGrade: "M20" }, 
+                reinforced: { minCement: 340, maxWCR: 0.45, minGrade: "M35" } 
+            },
+            "extreme": { 
+                plain: { minCement: 280, maxWCR: 0.40, minGrade: "M25" }, 
+                reinforced: { minCement: 360, maxWCR: 0.40, minGrade: "M25" } 
+            }
         };
 
         // DOM Elements
@@ -1251,6 +1305,14 @@
         const gradeInput = document.getElementById('grade');
         const targetStrengthPreview = document.getElementById('targetStrengthPreview');
         const deleteSavedResultBtn = document.getElementById('deleteSavedResultBtn');
+        const cementTypeSelect = document.getElementById('cementType');
+        const useFlyAshCheckbox = document.getElementById('useFlyAsh');
+        const waterCementRatioInput = document.getElementById('waterCementRatio');
+        const waterCementRatioLabel = document.getElementById('waterCementRatioLabel');
+        const wcrRestrictionNote = document.getElementById('wcrRestrictionNote');
+        const useFlyAshLabel = document.getElementById('useFlyAshLabel');
+        const flyAshRestrictionNote = document.getElementById('flyAshRestrictionNote');
+        const adjustmentMessage = document.getElementById('adjustmentMessage');
 
         let materialChart;
         let savedMaterialChart;
@@ -1290,6 +1352,15 @@
 
         // Event listener for grade input to show target strength preview
         gradeInput.addEventListener('input', updateTargetStrengthPreview);
+
+        // Event listener for cement type change
+        cementTypeSelect.addEventListener('change', handleCementTypeChange);
+
+        // Event listeners for exposure condition and concrete type changes
+        document.getElementById('exposure').addEventListener('change', handleExposureChange);
+        document.querySelectorAll('input[name="concreteType"]').forEach(radio => {
+            radio.addEventListener('change', handleExposureChange);
+        });
 
         // Registration Form Submission
         registerForm.addEventListener('submit', (e) => {
@@ -1464,9 +1535,14 @@
                 gradeValue = parseInt(gradeInputValue);
             }
             
-            // Validate grade input
+            // Validate grade input - restrict to maximum 80
             if (isNaN(gradeValue) || gradeValue < 10 || gradeValue > 80) {
                 targetStrengthPreview.style.display = 'none';
+                if (gradeValue > 80) {
+                    showMessage("Maximum allowed grade is M80. Please enter a grade between M10 and M80.", "error");
+                    gradeInput.value = "M80";
+                    gradeValue = 80;
+                }
                 return;
             }
             
@@ -1485,6 +1561,110 @@
             targetStrengthPreview.innerHTML = `
                 Target Mean Strength: ${targetStrength.toFixed(2)} N/mm²
             `;
+        }
+
+        // Handle cement type change
+        function handleCementTypeChange() {
+            const isPPC = cementTypeSelect.value === 'PPC';
+            
+            // If PPC is selected, disable fly ash
+            if (isPPC) {
+                useFlyAshCheckbox.checked = false;
+                useFlyAshCheckbox.disabled = true;
+                document.getElementById('flyAshPercentage').disabled = true;
+                document.getElementById('spGravityFlyAsh').disabled = true;
+                
+                // Add restriction styling
+                useFlyAshLabel.classList.add('restricted-label');
+                flyAshRestrictionNote.style.display = 'block';
+            } else {
+                useFlyAshCheckbox.disabled = false;
+                document.getElementById('flyAshPercentage').disabled = !useFlyAshCheckbox.checked;
+                document.getElementById('spGravityFlyAsh').disabled = !useFlyAshCheckbox.checked;
+                
+                // Remove restriction styling
+                useFlyAshLabel.classList.remove('restricted-label');
+                flyAshRestrictionNote.style.display = 'none';
+            }
+        }
+
+        // Handle exposure condition change
+        function handleExposureChange() {
+            const exposure = document.getElementById('exposure').value;
+            const concreteType = getConcreteType();
+            const expReq = exposureRequirements[exposure][concreteType];
+            const maxWCR = expReq.maxWCR;
+            const minGrade = expReq.minGrade;
+            
+            let adjustmentMessages = [];
+            
+            // Update water-cement ratio input restrictions
+            waterCementRatioInput.max = maxWCR;
+            
+            // Check if current water-cement ratio exceeds the max and adjust if necessary
+            const currentWCR = parseFloat(waterCementRatioInput.value);
+            if (currentWCR > maxWCR) {
+                waterCementRatioInput.value = maxWCR;
+                waterCementRatioInput.classList.add('auto-adjusted');
+                setTimeout(() => {
+                    waterCementRatioInput.classList.remove('auto-adjusted');
+                }, 2000);
+                adjustmentMessages.push(`Water-cement ratio adjusted to ${maxWCR} (maximum allowed for ${exposure} exposure)`);
+            }
+            
+            // Check if current grade meets the minimum requirement and adjust if necessary
+            if (minGrade) {
+                const minGradeValue = parseInt(minGrade.substring(1)); // Extract numeric value from "M20"
+                const currentGradeValue = getCurrentGradeValue();
+                
+                if (currentGradeValue < minGradeValue) {
+                    gradeInput.value = minGrade;
+                    gradeInput.classList.add('auto-adjusted');
+                    setTimeout(() => {
+                        gradeInput.classList.remove('auto-adjusted');
+                    }, 2000);
+                    adjustmentMessages.push(`Concrete grade adjusted to ${minGrade} (minimum required for ${exposure} exposure)`);
+                    updateTargetStrengthPreview();
+                }
+            }
+            
+            // Add restriction styling if needed
+            if (maxWCR < 0.7) {
+                waterCementRatioLabel.classList.add('restricted-label');
+                wcrRestrictionNote.textContent = `Maximum allowed W/C ratio for ${exposure} exposure is ${maxWCR}`;
+                wcrRestrictionNote.style.display = 'block';
+            } else {
+                waterCementRatioLabel.classList.remove('restricted-label');
+                wcrRestrictionNote.style.display = 'none';
+            }
+            
+            // Show adjustment message if any adjustments were made
+            if (adjustmentMessages.length > 0) {
+                adjustmentMessage.innerHTML = '<strong>Auto-adjustments applied:</strong><br>' + adjustmentMessages.join('<br>');
+                adjustmentMessage.style.display = 'block';
+                
+                // Hide the message after 5 seconds
+                setTimeout(() => {
+                    adjustmentMessage.style.display = 'none';
+                }, 5000);
+            } else {
+                adjustmentMessage.style.display = 'none';
+            }
+            
+            // Update highlight for exposure table
+            highlightExposureCells();
+        }
+
+        // Get current grade value as a number
+        function getCurrentGradeValue() {
+            const gradeInputValue = gradeInput.value.toUpperCase();
+            let gradeValue;
+            if (gradeInputValue.startsWith('M')) {
+                gradeValue = parseInt(gradeInputValue.substring(1));
+            } else {
+                gradeValue = parseInt(gradeInputValue);
+            }
+            return isNaN(gradeValue) ? 0 : gradeValue;
         }
 
         function calculateMix() {
@@ -1519,9 +1699,17 @@
             // Format grade for display (M30/30)
             const formattedGrade = `M${gradeValue}/${gradeValue}`;
             
-            // Validate grade input
+            // Validate grade input - restrict to maximum 80
             if (isNaN(gradeValue) || gradeValue < 10 || gradeValue > 80) {
                 showMessage("Please enter a valid concrete grade between 10 and 80 (e.g., M30, 30, M40, 40)", "error");
+                return;
+            }
+
+            // Validate water-cement ratio against exposure requirements
+            const concreteType = getConcreteType();
+            const maxAllowedWCR = exposureRequirements[exposure][concreteType].maxWCR;
+            if (selectedWCR > maxAllowedWCR) {
+                showMessage(`Water-cement ratio (${selectedWCR}) exceeds maximum allowed (${maxAllowedWCR}) for ${exposure} exposure condition.`, "error");
                 return;
             }
 
@@ -1561,7 +1749,6 @@
             highlightExposureCells();
 
             // Get exposure requirements based on concrete type
-            const concreteType = getConcreteType();
             const expReq = exposureRequirements[exposure][concreteType];
 
             // Calculate air content
@@ -1648,7 +1835,7 @@
                 <p>Concrete type: ${concreteType === 'plain' ? 'Plain Concrete' : 'Reinforced Concrete'}</p>
                 <p>Minimum cement content required: ${expReq.minCement} kg/m³</p>
                 <p>Maximum water-cement ratio allowed: ${expReq.maxWCR}</p>
-                <p>Minimum grade required: ${expReq.minGrade}</p>
+                <p>Minimum grade required: ${expReq.minGrade || '--'}</p>
                 ${cementContent < expReq.minCement ? 
                     `<p class="highlight">Cement content increased to meet exposure requirement: ${cementContentAdjusted.toFixed(2)} kg/m³</p>` : 
                     `<p>Calculated cement content meets exposure requirement</p>`}
@@ -2007,13 +2194,19 @@
             }
             
             // Check if this result is already saved (by comparing key parameters)
-            const isDuplicate = currentUser.results.some(result => 
+            const existingResultIndex = currentUser.results.findIndex(result => 
                 result.grade === currentResult.grade &&
-                result.wcr === currentResult.wcr
+                Math.abs(result.wcr - currentResult.wcr) < 0.001
             );
             
-            if (isDuplicate) {
-                showMessage("This result is already saved. Please calculate a different mix design.", "error");
+            if (existingResultIndex !== -1) {
+                // Show the saved results section
+                toggleSavedResults();
+                
+                // Highlight the duplicate row with blinking animation
+                highlightDuplicateRow(existingResultIndex);
+                
+                showMessage("This result is already saved. The existing result has been highlighted.", "error");
                 return;
             }
             
@@ -2285,59 +2478,6 @@
             showMessage("Result deleted successfully!", "success");
         }
 
-        // Initialize with a sample calculation
-        window.onload = function() {
-            checkUserLogin();
-            highlightExposureCells();
-            updateTargetStrengthPreview();
-        };
-  
-        // All previous JavaScript code remains the same
-        
-        function saveResults() {
-            if (!currentResult) {
-                showMessage("No results to save. Please calculate mix proportions first.", "error");
-                return;
-            }
-            
-            if (!currentUser) {
-                showMessage("Please login to save results.", "error");
-                return;
-            }
-            
-            // Check if this result is already saved (by comparing key parameters)
-            const existingResultIndex = currentUser.results.findIndex(result => 
-                result.grade === currentResult.grade &&
-                Math.abs(result.wcr - currentResult.wcr) < 0.001
-            );
-            
-            if (existingResultIndex !== -1) {
-                // Show the saved results section
-                toggleSavedResults();
-                
-                // Highlight the duplicate row with blinking animation
-                highlightDuplicateRow(existingResultIndex);
-                
-                showMessage("This result is already saved. The existing result has been highlighted.", "error");
-                return;
-            }
-            
-            // Add to user's saved results
-            currentUser.results.push(currentResult);
-            
-            // Update the user in the users array
-            const userIndex = users.findIndex(user => user.id === currentUser.id);
-            if (userIndex !== -1) {
-                users[userIndex] = currentUser;
-            }
-            
-            // Save to localStorage
-            localStorage.setItem('conmixUsers', JSON.stringify(users));
-            localStorage.setItem('currentConmixUser', JSON.stringify(currentUser));
-            
-            showMessage("Results saved successfully!", "success");
-        }
-
         function highlightDuplicateRow(index) {
             // Get all saved result rows
             const savedResultRows = document.querySelectorAll('#savedResultsBody tr');
@@ -2356,7 +2496,14 @@
             }
         }
 
-        // Rest of the JavaScript code remains the same
+        // Initialize with a sample calculation
+        window.onload = function() {
+            checkUserLogin();
+            highlightExposureCells();
+            updateTargetStrengthPreview();
+            handleCementTypeChange();
+            handleExposureChange();
+        };
     </script>
 </body>
 </html>
